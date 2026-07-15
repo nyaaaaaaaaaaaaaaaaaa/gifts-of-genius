@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人物探索 - 天才的遗赠 / Gifts of Genius</title>
+    <link rel="stylesheet" href="_shared/css/common.css">
+    <style>
+        :root {
+            --night-bg: #2a3445;
+            --night-mid: #354555;
+            --night-green: #3a4a3e;
+            --gold: #c4a55a;
+            --gold-soft: rgba(196, 165, 90, 0.3);
+            --firefly: #d4c87a;
+        }
+        body { padding-top: 60px; }
+
+        /* Nav dark mode for explore */
+        .nav.dark-mode {
+            background: rgba(26, 30, 46, 0.92);
+            border-bottom: 1px solid rgba(196, 165, 90, 0.15);
+        }
+        .nav.dark-mode .nav-brand { color: var(--gold); }
+        .nav.dark-mode .nav-brand small { color: rgba(196, 165, 90, 0.5); }
+        .nav.dark-mode .nav-links a { color: rgba(196, 165, 90, 0.45); }
+        .nav.dark-mode .nav-links a:hover { color: rgba(196, 165, 90, 0.85); }
+        .nav.dark-mode .nav-links a.active { color: var(--gold); font-weight: 700; }
+        .nav.dark-mode .nav-links a.active::after { background: var(--gold); }
+
+        /* Explore container */
+        .explore {
+            position: relative;
+            min-height: 100vh;
+            background: #1a2535;
+            overflow: hidden;
+        }
+
+        /* ========== Genius Selector ========== */
+        .genius-selector {
+            position: absolute;
+            top: 80px;
+            left: 1.5rem;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            user-select: none;
+        }
+        .genius-up, .genius-down {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(15, 19, 32, 0.7);
+            border: 1px solid rgba(196, 165, 90, 0.25);
+            color: var(--gold);
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+            padding: 0;
+        }
+        .genius-up:hover, .genius-down:hover {
+            background: rgba(196, 165, 90, 0.2);
+            border-color: rgba(196, 165, 90, 0.5);
+        }
+        .genius-up.disabled, .genius-down.disabled {
+            opacity: 0;
+            cursor: default;
+            pointer-events: none;
+        }
+        .genius-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .genius-portrait {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px solid rgba(196, 165, 90, 0.35);
+            background: rgba(26, 30, 46, 0.8);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .genius-portrait img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .genius-name {
+            font-size: 0.95rem;
+            color: var(--gold);
+            font-weight: 700;
+            letter-spacing: 0.15em;
+        }
+        .genius-field {
+            font-size: 0.7rem;
+            color: rgba(196, 165, 90, 0.5);
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+        }
+
+        /* ========== Top-right HUD group ========== */
+        .top-right-hud {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        /* ========== Scene fav button ========== */
+        .scene-fav-btn {
+            background: rgba(15, 19, 32, 0.6);
+            border: 1px solid rgba(196, 165, 90, 0.25);
+            border-radius: 50%;
+            color: var(--gold);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .scene-fav-btn:hover {
+            background: rgba(196, 165, 90, 0.15);
+            border-color: rgba(196, 165, 90, 0.5);
+        }
+        .scene-fav-btn.has-items {
+            animation: favPulse 2s infinite;
+        }
+        @keyframes favPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(196, 165, 90, 0); }
+            50% { box-shadow: 0 0 8px 2px rgba(196, 165, 90, 0.25); }
+        }
+
+        /* ========== Back button (top-left, inside scenes-viewport) ========== */
+        .scene-back-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 50;
+            background: rgba(15, 19, 32, 0.6);
+            border: 1px solid rgba(196, 165, 90, 0.25);
+            border-radius: 50%;
+            color: var(--gold);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+            text-decoration: none;
+        }
+        .scene-back-btn:hover {
+            background: rgba(196, 165, 90, 0.15);
+            border-color: rgba(196, 165, 90, 0.5);
+        }
+
+        /* ========== Collect HUD (top-right, left of fav button) ========== */
+        .collect-hud {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            align-items: flex-end;
+        }
+        .collect-hud-label {
+            font-size: 0.7rem;
+            color: rgba(196, 165, 90, 0.6);
+            letter-spacing: 0.1em;
+        }
+        .collect-hud-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .collect-hud-bar {
+            width: 100px;
+            height: 6px;
+            background: rgba(196, 165, 90, 0.12);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .collect-hud-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #e0c96e);
+            border-radius: 3px;
+            transition: width 0.6s ease;
+            box-shadow: 0 0 8px rgba(196, 165, 90, 0.4);
+        }
+        .collect-hud-count {
+            font-size: 0.75rem;
+            color: var(--gold);
+            letter-spacing: 0.05em;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* ========== Scenes viewport ========== */
+        .scenes-viewport {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+            background: linear-gradient(180deg, #0d1520 0%, #152030 30%, #1a2d42 55%, #1e3545 70%, #18302a 100%);
+            transition: background 0.8s ease;
+        }
+        .scenes-viewport[data-scene="1"] {
+            background: linear-gradient(180deg, #101825 0%, #1a2a3c 30%, #1f3548 55%, #1a3838 70%, #152d28 100%);
+        }
+        .scenes-viewport[data-scene="2"] {
+            background: linear-gradient(180deg, #0e1828 0%, #182535 30%, #1c3040 55%, #203838 70%, #1a3228 100%);
+        }
+
+        /* ===== Stars ===== */
+        .scene-stars {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 55%;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.8s;
+        }
+        .scene-stars .star {
+            position: absolute;
+            background: rgba(220, 215, 200, 0.7);
+            border-radius: 50%;
+        }
+        .scene-stars .star.bright {
+            background: transparent;
+            box-shadow: none;
+        }
+        .scene-stars .star.twinkle {
+            animation: starTwinkle var(--dur, 3s) ease-in-out infinite alternate;
+        }
+        @keyframes starTwinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* ===== Moon ===== */
+        .scene-moon {
+            position: absolute;
+            top: 7%;
+            right: 18%;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 40%,
+                rgba(255,240,180,1) 0%,
+                rgba(255,230,150,0.85) 25%,
+                rgba(255,220,120,0.5) 45%,
+                rgba(240,200,80,0.15) 70%,
+                transparent 85%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== Mountains (3 layers via CSS) ===== */
+        .scene-mountain {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.8s;
+        }
+        .scene-mountain svg {
+            width: 100%; height: 100%; display: block;
+        }
+        .mountain-far {
+            height: 50%;
+            opacity: 0.3;
+        }
+        .mountain-mid {
+            height: 40%;
+            opacity: 0.5;
+        }
+        .mountain-near {
+            height: 30%;
+            opacity: 0.7;
+        }
+
+
+        /* ===== Ocean / Water ===== */
+        .scene-water {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 14%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+        .scene-water svg {
+            position: absolute;
+            top: -2px; left: -5%;
+            width: 110%; height: 25px;
+        }
+        .scene-water-body {
+            position: absolute;
+            top: 22px; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(20,40,45,0.6) 0%, rgba(15,30,30,0.85) 100%);
+        }
+        .scene-water-shimmer {
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 100%;
+            background:
+                radial-gradient(ellipse at 20% 30%, rgba(196,165,90,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 55% 50%, rgba(200,200,180,0.05) 0%, transparent 40%),
+                radial-gradient(ellipse at 80% 20%, rgba(196,165,90,0.06) 0%, transparent 45%);
+            animation: shimmerPulse 6s ease-in-out infinite;
+        }
+        @keyframes shimmerPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* ===== Kun fish silhouette (CSS) ===== */
+        .scene-kun {
+            position: absolute;
+            bottom: 12%;
+            left: 15%;
+            width: 80px;
+            height: 35px;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.35;
+            transition: opacity 0.8s, transform 0.8s;
+            animation: kunFloat 5s ease-in-out infinite;
+        }
+        .scenes-viewport[data-scene="1"] .scene-kun { opacity: 0.2; transform: scale(0.8) translateY(-10px); }
+        .scenes-viewport[data-scene="2"] .scene-kun { opacity: 0.1; transform: scale(0.6) translateY(-20px); }
+        @keyframes kunFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .scenes-viewport[data-scene="1"] .scene-kun,
+        .scenes-viewport[data-scene="2"] .scene-kun { animation: none; }
+
+        /* ===== Peng bird silhouette (CSS) ===== */
+        .scene-peng {
+            position: absolute;
+            top: 15%;
+            right: 10%;
+            width: 120px;
+            height: 60px;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 1.2s, top 1.2s, right 1.2s;
+        }
+        .scenes-viewport[data-scene="0"] .scene-peng { opacity: 0; }
+        .scenes-viewport[data-scene="1"] .scene-peng { opacity: 0.5; top: 20%; right: 25%; }
+        .scenes-viewport[data-scene="2"] .scene-peng { opacity: 0.7; top: 10%; right: 15%; animation: pengSoar 6s ease-in-out infinite; }
+        @keyframes pengSoar {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-12px) rotate(2deg); }
+        }
+
+        /* ========== Scenes track & pages ========== */
+        .scenes-track {
+            display: flex;
+            width: 300%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            z-index: 2;
+        }
+        .scene-page {
+            width: calc(100% / 3);
+            height: 100%;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .scene-page .collectible .item-label { opacity: 1; }
+
+        /* Per-view item positions */
+        .scene-page-0 .item-tree { bottom: 22%; left: 12%; }
+        .scene-page-0 .item-fish { bottom: 18%; right: 22%; }
+        .scene-page-0 .item-turtle,
+        .scene-page-0 .item-butterfly,
+        .scene-page-0 .item-knife,
+        .scene-page-0 .item-gourd { display: none !important; }
+
+        .scene-page-1 .item-turtle { bottom: 22%; left: 15%; }
+        .scene-page-1 .item-butterfly { top: 22%; right: 18%; }
+        .scene-page-1 .item-tree,
+        .scene-page-1 .item-fish,
+        .scene-page-1 .item-knife,
+        .scene-page-1 .item-gourd { display: none !important; }
+
+        .scene-page-2 .item-knife { bottom: 35%; left: 25%; }
+        .scene-page-2 .item-gourd { bottom: 30%; right: 18%; }
+        .scene-page-2 .item-tree,
+        .scene-page-2 .item-fish,
+        .scene-page-2 .item-turtle,
+        .scene-page-2 .item-butterfly { display: none !important; }
+
+        /* Scene navigation arrows - vertical */
+        .scene-nav-arrow {
+            position: absolute;
+            z-index: 30;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(20, 20, 30, 0.6);
+            border: 1.5px solid var(--gold);
+            color: var(--gold);
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s, opacity 0.3s, border-color 0.3s;
+            opacity: 1;
+            user-select: none;
+            line-height: 1;
+        }
+        .scene-nav-arrow:hover {
+            background: rgba(196, 165, 90, 0.25);
+            border-color: var(--gold);
+        }
+        .scene-nav-arrow.arrow-left {
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .scene-nav-arrow.arrow-right {
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .scene-nav-arrow.disabled {
+            opacity: 0.2;
+            cursor: default;
+            pointer-events: none;
+        }
+        .scene-nav-arrow .arrow-label {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: rgba(196, 165, 90, 0.5);
+            margin-top: 4px;
+            white-space: nowrap;
+            letter-spacing: 0.05em;
+        }
+
+        /* Scene indicators (dots) */
+        .scene-indicators {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            display: flex;
+            gap: 0.8rem;
+        }
+        .scene-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(196, 165, 90, 0.4);
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .scene-dot.active {
+            background: var(--gold);
+            border-color: var(--gold);
+            box-shadow: 0 0 8px rgba(196, 165, 90, 0.4);
+        }
+        .scene-dot:hover:not(.active) {
+            border-color: rgba(196, 165, 90, 0.7);
+        }
+
+        /* ========== Coming soon overlay ========== */
+        .coming-soon-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 25;
+            pointer-events: none;
+        }
+        .coming-soon-icon {
+            font-size: 3rem;
+            margin-bottom: 0.8rem;
+            opacity: 0.5;
+        }
+        .coming-soon-title {
+            font-size: 1.8rem;
+            color: rgba(196, 165, 90, 0.5);
+            letter-spacing: 0.25em;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .coming-soon-desc {
+            font-size: 0.85rem;
+            color: rgba(196, 165, 90, 0.3);
+            letter-spacing: 0.1em;
+        }
+
+        /* ========== Bottom coming soon section (below scenes) ========== */
+        .coming-soon-section {
+            min-height: 60vh;
+            background: #1a2535;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            position: relative;
+            overflow: hidden;
+            border-top: 1px solid rgba(196, 165, 90, 0.08);
+        }
+        .coming-soon-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(196, 165, 90, 0.2), transparent);
+        }
+        .coming-soon-section-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.2rem;
+            opacity: 0.4;
+        }
+        .coming-soon-section-title {
+            font-size: 2.2rem;
+            color: rgba(196, 165, 90, 0.5);
+            letter-spacing: 0.4em;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-indent: 0.4em;
+        }
+        .coming-soon-section-desc {
+            font-size: 0.95rem;
+            color: rgba(196, 165, 90, 0.3);
+            letter-spacing: 0.15em;
+            text-align: center;
+            line-height: 2;
+            max-width: 400px;
+        }
+        .coming-soon-section-desc .highlight {
+            color: rgba(196, 165, 90, 0.5);
+        }
+        .coming-soon-stars {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(1px 1px at 15% 30%, rgba(196, 165, 90, 0.2) 0%, transparent 100%),
+                radial-gradient(1px 1px at 35% 60%, rgba(196, 165, 90, 0.15) 0%, transparent 100%),
+                radial-gradient(1px 1px at 55% 20%, rgba(196, 165, 90, 0.2) 0%, transparent 100%),
+                radial-gradient(1px 1px at 75% 50%, rgba(196, 165, 90, 0.15) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 85% 75%, rgba(196, 165, 90, 0.25) 0%, transparent 100%),
+                radial-gradient(1px 1px at 25% 80%, rgba(196, 165, 90, 0.15) 0%, transparent 100%);
+        }
+
+        /* ========== Collectible items ========== */
+        .collectible {
+            position: absolute;
+            cursor: pointer;
+            z-index: 20;
+            transition: all 0.4s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .collectible:hover {
+            transform: scale(1.2) translateY(-8px);
+        }
+        .collectible .item-visual {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s;
+            position: relative;
+        }
+        .collectible .item-visual svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            filter: drop-shadow(0 2px 6px rgba(196, 165, 90, 0.3));
+            transition: all 0.4s;
+        }
+        .collectible:hover .item-visual svg {
+            transform: scale(1.15);
+            filter: drop-shadow(0 0 16px rgba(196, 165, 90, 0.6)) drop-shadow(0 0 30px rgba(196, 165, 90, 0.3));
+            animation: starGlow 2s ease-in-out infinite;
+        }
+        @keyframes starGlow {
+            0%, 100% { filter: drop-shadow(0 0 12px rgba(196, 165, 90, 0.5)) drop-shadow(0 0 24px rgba(196, 165, 90, 0.2)); }
+            50% { filter: drop-shadow(0 0 20px rgba(196, 165, 90, 0.7)) drop-shadow(0 0 40px rgba(196, 165, 90, 0.35)); }
+        }
+        .collectible.collected .item-visual svg {
+            filter: drop-shadow(0 0 12px rgba(196, 165, 90, 0.5));
+        }
+        .collectible .item-label {
+            margin-top: 0.3rem;
+            font-size: 0.75rem;
+            color: rgba(196, 165, 90, 0.7);
+            background: rgba(26, 30, 46, 0.85);
+            padding: 0.2rem 0.6rem;
+            border-radius: 10px;
+            letter-spacing: 0.05em;
+            border: 1px solid rgba(196, 165, 90, 0.15);
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+        .collectible:hover .item-label { opacity: 1; }
+        .collectible.collected::after {
+            content: "\2713";
+            position: absolute;
+            top: -8px; right: -8px;
+            width: 22px; height: 22px;
+            background: var(--gold);
+            color: #1a1e2e;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        /* ========== Item Modal ========== */
+        .item-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 12, 20, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .item-modal.active { display: flex; opacity: 1; }
+        .item-modal-content {
+            background: linear-gradient(135deg, #2a3445 0%, #354555 100%);
+            width: 90%;
+            max-width: 540px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            padding: 2.5rem;
+            position: relative;
+            border: 1px solid rgba(196, 165, 90, 0.15);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(196, 165, 90, 0.05);
+            transform: scale(0.92) translateY(16px);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        opacity 0.35s ease;
+        }
+        .item-modal.active .item-modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .item-modal-close {
+            position: absolute;
+            top: 0.8rem; right: 0.8rem;
+            width: 44px; height: 44px;
+            border: 2px solid rgba(196, 165, 90, 0.25);
+            background: rgba(26, 30, 46, 0.8);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.6rem;
+            line-height: 1;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+        .item-modal-close:hover {
+            background: var(--gold);
+            color: #1a1e2e;
+            border-color: var(--gold);
+            transform: rotate(90deg);
+        }
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .modal-actions .collect-btn { flex: 1; }
+        .modal-close-text {
+            flex: 1;
+            padding: 0.9rem;
+            background: transparent;
+            color: rgba(196, 165, 90, 0.7);
+            border: 2px solid rgba(196, 165, 90, 0.25);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .modal-close-text:hover {
+            background: rgba(196, 165, 90, 0.15);
+            color: var(--gold);
+            border-color: var(--gold);
+        }
+        .item-modal-icon {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .item-modal h3 {
+            font-size: 1.4rem;
+            text-align: center;
+            letter-spacing: 0.15em;
+            margin-bottom: 0.5rem;
+            color: var(--gold);
+        }
+        .item-modal .source {
+            text-align: center;
+            font-size: 0.8rem;
+            color: rgba(196, 165, 90, 0.45);
+            margin-bottom: 1.5rem;
+        }
+        .item-modal .story {
+            font-size: 0.95rem;
+            line-height: 2;
+            color: rgba(220, 220, 210, 0.85);
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+        .item-modal .insight {
+            background: rgba(196, 165, 90, 0.06);
+            border-left: 3px solid var(--gold);
+            padding: 1rem 1.2rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 1rem;
+        }
+        .item-modal .insight-label {
+            font-size: 0.75rem;
+            color: var(--gold);
+            letter-spacing: 0.1em;
+            margin-bottom: 0.3rem;
+            font-weight: 700;
+        }
+        .item-modal .insight p {
+            font-size: 0.9rem;
+            color: rgba(200, 200, 190, 0.75);
+            line-height: 1.8;
+        }
+        .collect-btn {
+            display: block;
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--gold);
+            color: #1a1e2e;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            font-weight: 700;
+        }
+        .collect-btn:hover { background: #e0c96e; }
+        .collect-btn.collected {
+            background: rgba(196, 165, 90, 0.2);
+            color: rgba(196, 165, 90, 0.5);
+            cursor: default;
+        }
+
+        /* Detail toggle button */
+        .detail-toggle-btn {
+            display: block;
+            width: 100%;
+            padding: 0.7rem;
+            background: transparent;
+            color: rgba(196, 165, 90, 0.7);
+            border: 1px dashed rgba(196, 165, 90, 0.3);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            margin-bottom: 1.5rem;
+        }
+        .detail-toggle-btn:hover {
+            background: rgba(196, 165, 90, 0.08);
+            border-color: rgba(196, 165, 90, 0.5);
+            color: var(--gold);
+        }
+        .detail-toggle-btn.active {
+            color: var(--gold);
+            border-color: rgba(196, 165, 90, 0.5);
+        }
+
+        /* Detail expanded area */
+        .item-detail {
+            display: none;
+            margin-top: -0.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(166, 139, 107, 0.25);
+            margin-bottom: 1.5rem;
+        }
+        .item-detail.active { display: block; }
+        .item-detail-section { margin-bottom: 1rem; }
+        .item-detail-section:last-child { margin-bottom: 0; }
+        .item-detail-label {
+            font-size: 0.75rem;
+            color: var(--mist, #9e9a94);
+            margin-bottom: 0.3rem;
+            letter-spacing: 0.08em;
+        }
+        .item-detail-text {
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: rgba(220, 220, 210, 0.85);
+        }
+
+        /* ========== Favorites Modal (centered popup) ========== */
+        .fav-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 12, 20, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .fav-modal.active { display: flex; opacity: 1; }
+        .fav-modal-content {
+            background: linear-gradient(135deg, #2a3445 0%, #354555 100%);
+            width: 90%;
+            max-width: 540px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 12px;
+            padding: 2.5rem;
+            position: relative;
+            border: 1px solid rgba(196, 165, 90, 0.15);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 40px rgba(196, 165, 90, 0.05);
+            transform: scale(0.92) translateY(16px);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        opacity 0.35s ease;
+        }
+        .fav-modal.active .fav-modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .fav-modal-close {
+            position: absolute;
+            top: 0.8rem; right: 0.8rem;
+            width: 44px; height: 44px;
+            border: 2px solid rgba(196, 165, 90, 0.25);
+            background: rgba(26, 30, 46, 0.8);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.6rem;
+            line-height: 1;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 10;
+        }
+        .fav-modal-close:hover {
+            background: var(--gold);
+            color: #1a1e2e;
+            border-color: var(--gold);
+            transform: rotate(90deg);
+        }
+        .fav-modal h3 {
+            font-size: 1.4rem;
+            text-align: center;
+            letter-spacing: 0.15em;
+            margin-bottom: 1.5rem;
+            color: var(--gold);
+        }
+        .fav-modal-empty {
+            text-align: center;
+            color: rgba(196, 165, 90, 0.4);
+            font-size: 0.85rem;
+            padding: 3rem 1.5rem;
+            line-height: 1.8;
+        }
+        .fav-modal-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.9rem 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 8px;
+            margin-bottom: 0.3rem;
+        }
+        .fav-modal-item:hover {
+            background: rgba(196, 165, 90, 0.08);
+        }
+        .fav-modal-item-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(196, 165, 90, 0.08);
+            border-radius: 10px;
+        }
+        .fav-modal-item-info { flex: 1; min-width: 0; }
+        .fav-modal-item-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: rgba(220, 220, 210, 0.9);
+        }
+        .fav-modal-item-source {
+            font-size: 0.75rem;
+            color: rgba(196, 165, 90, 0.5);
+            margin-top: 0.15rem;
+        }
+
+        /* Explore hint text */
+        .explore-hint {
+            position: absolute;
+            bottom: 4.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            font-size: 0.75rem;
+            color: rgba(196, 165, 90, 0.4);
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .collectible .item-visual { width: 50px; height: 50px; font-size: 2rem; }
+            .genius-selector { left: 0.8rem; top: 68px; }
+            .genius-portrait { width: 48px; height: 48px; }
+            .genius-name { font-size: 0.8rem; }
+            .genius-field { font-size: 0.6rem; }
+            .collect-hud-bar { width: 70px; }
+            .collect-hud-label { display: none; }
+            .top-right-hud { top: 0.8rem; right: 0.8rem; gap: 0.5rem; }
+            .scene-back-btn { top: 0.8rem; left: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav dark-mode" id="main-nav">
+        <a href="index.html" class="nav-brand">天才的遗赠 <small>Gifts of Genius</small></a>
+        <div class="nav-links">
+            <a href="index.html" id="nav-home">首页</a>
+            <a href="explore.html" id="nav-explore" class="active">探索</a>
+            <a href="dialogue.html" id="nav-dialogue">对话</a>
+            <a href="decision.html" id="nav-decision">决策测试</a>
+        </div>
+    </nav>
+
+    <div class="explore">
+        <!-- Genius Selector (up/down) -->
+        <div class="genius-selector">
+            <button class="genius-up disabled" id="genius-up">&#9650;</button>
+            <div class="genius-info">
+                <div class="genius-portrait" id="genius-portrait-link" style="cursor:pointer" title="查看对话">
+                    <img id="genius-portrait-img" src="assets/avatars/zhuangzi.jpg" alt="">
+                </div>
+                <div class="genius-name" id="genius-name">庄子</div>
+                <div class="genius-field" id="genius-field">道家哲学</div>
+            </div>
+            <button class="genius-down disabled" id="genius-down">&#9660;</button>
+        </div>
+
+        <!-- Scenes Viewport -->
+        <div class="scenes-viewport" id="scenes-viewport">
+            <!-- Back button (top-left) -->
+            <a href="explore.html" class="scene-back-btn" title="返回探索入口">&#8592;</a>
+
+            <!-- Top-right HUD: collect progress + fav button -->
+            <div class="top-right-hud">
+                <div class="collect-hud" id="collect-hud">
+                    <div class="collect-hud-label">探索进度</div>
+                    <div class="collect-hud-bar-wrap">
+                        <div class="collect-hud-count"><span id="collect-count">0</span>/<span id="collect-total">6</span></div>
+                        <div class="collect-hud-bar">
+                            <div class="collect-hud-fill" id="collect-hud-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="scene-fav-btn" id="scene-fav-btn" title="我的收藏">&#9733;</button>
+            </div>
+
+            <!-- CSS Scene layers -->
+            <div class="scene-stars" id="scene-stars"></div>
+            <div class="scene-moon"></div>
+            <div class="scene-mountain mountain-far">
+                <svg viewBox="0 0 1440 400" preserveAspectRatio="none">
+                    <path d="M0,400 L0,280 Q80,210 160,240 Q240,170 360,200 Q440,130 560,170 Q640,100 720,140 Q800,80 880,120 Q960,60 1040,100 Q1120,70 1200,110 Q1280,90 1360,130 Q1400,120 1440,140 L1440,400 Z" fill="rgba(25,50,55,0.4)"/>
+                </svg>
+            </div>
+            <div class="scene-mountain mountain-mid">
+                <svg viewBox="0 0 1440 400" preserveAspectRatio="none">
+                    <path d="M0,400 L0,300 Q100,240 200,270 Q280,190 400,230 Q500,160 600,200 Q700,130 800,170 Q900,100 1020,140 Q1120,110 1240,150 Q1340,120 1440,160 L1440,400 Z" fill="rgba(20,40,42,0.55)"/>
+                </svg>
+            </div>
+            <div class="scene-mountain mountain-near">
+                <svg viewBox="0 0 1440 400" preserveAspectRatio="none">
+                    <path d="M0,400 L0,320 Q120,260 240,290 Q360,220 480,260 Q580,200 700,240 Q820,180 940,210 Q1060,170 1180,200 Q1300,180 1440,210 L1440,400 Z" fill="rgba(18,35,32,0.75)"/>
+                </svg>
+            </div>
+
+            <div class="scene-kun">
+                <svg viewBox="0 0 120 50" width="80" height="35">
+                    <path d="M10,25 Q20,8 40,15 Q55,5 75,12 Q90,8 105,18 Q115,22 110,30 Q100,38 80,35 Q60,40 40,38 Q20,40 10,32 Z" fill="rgba(180,165,120,0.6)" stroke="rgba(196,165,90,0.3)" stroke-width="0.5"/>
+                    <circle cx="95" cy="22" r="1.5" fill="rgba(196,165,90,0.8)"/>
+                </svg>
+            </div>
+            <div class="scene-peng">
+                <svg viewBox="0 0 200 100" width="120" height="60">
+                    <path d="M30,60 Q50,20 80,35 Q100,15 130,30 Q160,10 185,25 L195,30 Q180,40 160,45 Q140,55 120,50 Q100,60 80,55 Q55,65 35,60 Z" fill="rgba(200,190,150,0.5)" stroke="rgba(220,200,140,0.3)" stroke-width="0.5"/>
+                    <path d="M85,35 Q95,28 110,32 Q120,25 130,30" fill="none" stroke="rgba(220,200,140,0.4)" stroke-width="1"/>
+                    <circle cx="170" cy="28" r="1.5" fill="rgba(220,200,140,0.7)"/>
+                </svg>
+            </div>
+            <div class="scene-water">
+                <svg viewBox="0 0 1440 30" preserveAspectRatio="none">
+                    <path fill="rgba(20,45,42,0.5)" d="M0,15 Q60,8 120,15 Q180,22 240,15 Q300,8 360,15 Q420,22 480,15 Q540,8 600,15 Q660,22 720,15 Q780,8 840,15 Q900,22 960,15 Q1020,8 1080,15 Q1140,22 1200,15 Q1260,8 1320,15 Q1380,22 1440,15 L1440,30 L0,30 Z">
+                        <animate attributeName="d" dur="4s" repeatCount="indefinite" values="
+                            M0,15 Q60,8 120,15 Q180,22 240,15 Q300,8 360,15 Q420,22 480,15 Q540,8 600,15 Q660,22 720,15 Q780,8 840,15 Q900,22 960,15 Q1020,8 1080,15 Q1140,22 1200,15 Q1260,8 1320,15 Q1380,22 1440,15 L1440,30 L0,30 Z;
+                            M0,15 Q60,22 120,15 Q180,8 240,15 Q300,22 360,15 Q420,8 480,15 Q540,22 600,15 Q660,8 720,15 Q780,22 840,15 Q900,8 960,15 Q1020,22 1080,15 Q1140,8 1200,15 Q1260,22 1320,15 Q1380,8 1440,15 L1440,30 L0,30 Z;
+                            M0,15 Q60,8 120,15 Q180,22 240,15 Q300,8 360,15 Q420,22 480,15 Q540,8 600,15 Q660,22 720,15 Q780,8 840,15 Q900,22 960,15 Q1020,8 1080,15 Q1140,22 1200,15 Q1260,8 1320,15 Q1380,22 1440,15 L1440,30 L0,30 Z
+                        "/>
+                    </path>
+                </svg>
+                <div class="scene-water-body"></div>
+                <div class="scene-water-shimmer"></div>
+            </div>
+
+            <!-- Scene sliding layer (3 views) -->
+            <div class="scenes-track" id="scenes-track">
+                <div class="scene-page scene-page-0">
+                    <div class="collectible item-tree" data-id="tree">
+                        <div class="item-visual"><svg viewBox="0 0 12 12"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="rgba(220,215,200,0.85)"/></svg></div>
+                        <div class="item-label">无用之木</div>
+                    </div>
+                    <div class="collectible item-fish" data-id="fish">
+                        <div class="item-visual"><svg viewBox="0 0 12 12"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="rgba(220,215,200,0.85)"/></svg></div>
+                        <div class="item-label">涸辙之鲋</div>
+                    </div>
+                </div>
+                <div class="scene-page scene-page-1">
+                    <div class="collectible item-turtle" data-id="turtle">
+                        <div class="item-visual"><svg viewBox="0 0 12 12"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="rgba(220,215,200,0.85)"/></svg></div>
+                        <div class="item-label">神龟之喻</div>
+                    </div>
+                    <div class="collectible item-butterfly" data-id="butterfly">
+                        <div class="item-visual"><svg viewBox="0 0 12 12"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="rgba(220,215,200,0.85)"/></svg></div>
+                        <div class="item-label">庄周梦蝶</div>
+                    </div>
+                </div>
+                <div class="scene-page scene-page-2">
+                    <div class="collectible item-knife" data-id="knife">
+                        <div class="item-visual"><svg viewBox="0 0 12 12"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="rgba(220,215,200,0.85)"/></svg></div>
+                        <div class="item-label">庖丁解牛</div>
+                    </div>
+                    <div class="collectible item-gourd" data-id="gourd">
+                        <div class="item-visual"><svg viewBox="0 0 12 12"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="rgba(220,215,200,0.85)"/></svg></div>
+                        <div class="item-label">大瓠之种</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation arrows (vertical) -->
+            <button class="scene-nav-arrow arrow-left disabled" id="scene-arrow-left">&#9664;</button>
+            <button class="scene-nav-arrow arrow-right" id="scene-arrow-right">&#9654;</button>
+
+            <!-- Position indicators -->
+            <div class="scene-indicators">
+                <div class="scene-dot active" data-scene="0"></div>
+                <div class="scene-dot" data-scene="1"></div>
+                <div class="scene-dot" data-scene="2"></div>
+            </div>
+
+            <!-- Hint text -->
+            <div class="explore-hint">探索不同场景，点击物品收藏其决策智慧</div>
+        </div>
+    </div>
+
+    <!-- 底部开发中区域 -->
+    <section class="coming-soon-section">
+        <div class="coming-soon-stars"></div>
+        <div class="coming-soon-section-icon">&#10024;</div>
+        <div class="coming-soon-section-title">开发中</div>
+        <div class="coming-soon-section-desc">
+            更多天才的精神空间正在筹备中<br>
+            <span class="highlight">敬请期待</span>
+        </div>
+    </section>
+
+    <!-- Item Detail Modal -->
+    <div class="item-modal" id="item-modal">
+        <div class="item-modal-content">
+            <button class="item-modal-close" id="modal-close-btn">&times;</button>
+            <div class="item-modal-icon" id="modal-icon"></div>
+            <h3 id="modal-title"></h3>
+            <p class="source" id="modal-source"></p>
+            <p class="story" id="modal-story"></p>
+            <div class="insight">
+                <div class="insight-label">决策启示</div>
+                <p id="modal-insight"></p>
+            </div>
+            <button class="detail-toggle-btn" id="detail-toggle-btn">查看详情</button>
+            <div class="item-detail" id="item-detail">
+                <div class="item-detail-section">
+                    <div class="item-detail-label">原文</div>
+                    <div class="item-detail-text" id="detail-original"></div>
+                </div>
+                <div class="item-detail-section">
+                    <div class="item-detail-label">白话译文</div>
+                    <div class="item-detail-text" id="detail-translation"></div>
+                </div>
+                <div class="item-detail-section">
+                    <div class="item-detail-label">出处</div>
+                    <div class="item-detail-text" id="detail-source-full"></div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="collect-btn" id="modal-collect">加入收藏</button>
+                <button class="modal-close-text" id="modal-close-text-btn">知道了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Modal (centered popup) -->
+    <div class="fav-modal" id="fav-modal">
+        <div class="fav-modal-content">
+            <button class="fav-modal-close" id="fav-modal-close">&times;</button>
+            <h3>我的收藏</h3>
+            <div id="fav-modal-body">
+                <div class="fav-modal-empty">还没有收集任何物品，去探索吧</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==================== Genius Data ==================== */
+        var geniusData = {
+            zhuangzi: {
+                name: '\u5E84\u5B50',
+                field: '\u9053\u5BB6\u54F2\u5B66',
+                era: '\u7EA6\u524D369\u2014\u524D286\u5E74',
+                portrait: 'assets/avatars/zhuangzi.jpg',
+                timeline: [
+                    { year: '\u7EA6\u524D369\u5E74', title: '\u51FA\u751F', desc: '\u5E84\u5468\u51FA\u751F\u4E8E\u5B8B\u56FD\u8499\u5730' },
+                    { year: '\u7EA6\u524D340\u5E74', title: '\u51FA\u4EFB\u6F06\u56ED\u540F', desc: '\u7BA1\u7406\u6F06\u6811\u79CD\u690D\u4E0E\u751F\u6F06\u91C7\u5272' },
+                    { year: '\u7EA6\u524D335\u5E74', title: '\u62D2\u8058\u695A\u76F8', desc: '\u6fee\u6C34\u5782\u9493\uFF0C\u4EE5\u795E\u9F9F\u4E3A\u55BB\u62D2\u7EDD\u695A\u5A01\u738B' },
+                    { year: '\u7EA6\u524D325\u5E74', title: '\u4E0E\u60E0\u65BD\u8BBA\u8FA9', desc: '\u6EE0\u6881\u4E4B\u8FA9\u3001\u6709\u7528\u65E0\u7528\u4E4B\u8FA9\u7B49' },
+                    { year: '\u65F6\u95F4\u4E0D\u8BE6', title: '\u9F13\u76C6\u800C\u6B4C', desc: '\u59BB\u5B50\u53BB\u4E16\uFF0C\u5E84\u5B50\u7B95\u636E\u9F13\u76C6\u800C\u6B4C' },
+                    { year: '\u7EA6\u524D312\u5E74', title: '\u60E0\u65BD\u53BB\u4E16', desc: '\u5320\u77F3\u8FD0\u65A4\uFF0C\u543E\u65E0\u4EE5\u4E3A\u8D28\u77E3' },
+                    { year: '\u7EA6\u524D295\u5E74', title: '\u72EC\u5C45\u8457\u4E66', desc: '\u8457\u4E66\u5341\u4F59\u4E07\u8A00\uFF0C\u5185\u4E03\u7BC7\u51FA\u81EA\u5E84\u5B50' },
+                    { year: '\u7EA6\u524D286\u5E74', title: '\u53BB\u4E16', desc: '\u62D2\u7EDD\u539A\u846C\uFF0C\u4EE5\u5929\u5730\u4E3A\u68FA\u697C' }
+                ],
+                items: {
+                    turtle: {
+                        icon: 'assets/items/turtle-mud.jpg',
+                        title: '\u795E\u9F9F\u4E4B\u55BB',
+                        source: '\u300A\u5E84\u5B50\u00B7\u79CB\u6C34\u300B',
+                        story: `\u201C\u543E\u5C06\u66F3\u5C3E\u4E8E\u6D82\u4E2D\u3002\u201D\u695A\u738B\u6D3E\u4F7F\u8005\u8BF7\u5E84\u5B50\u4E3A\u76F8\uFF0C\u5E84\u5B50\u4EE5\u6CE5\u4E2D\u4E4B\u9F9F\u4E3A\u55BB\uFF1A\u5B81\u53EF\u5728\u6CE5\u5730\u91CC\u6D3B\u7740\u6447\u5C3E\u5DF4\uFF0C\u4E5F\u4E0D\u613F\u6B7B\u540E\u88AB\u4F9B\u5949\u5728\u5E99\u5802\u4E4B\u4E0A\u3002\u4ED6\u9009\u62E9\u4E86\u81EA\u7531\u3002`,
+                        insight: '\u81EA\u7531\u4E0D\u662F\u4EC0\u4E48\u90FD\u62E5\u6709\uFF0C\u800C\u662F\u53EF\u4EE5\u9009\u62E9\u4E0D\u8981\u4EC0\u4E48\u3002',
+                        originalText: `\u5E84\u5B50\u9493\u4E8E\u6fee\u6C34\u3002\u695A\u738B\u4F7F\u5927\u592B\u4E8C\u4EBA\u5F80\u5148\u7109\uFF0C\u66F0\uFF1A\u201C\u613F\u4EE5\u5883\u5185\u7D2F\u77E3\uFF01\u201D\u5E84\u5B50\u6301\u7AFF\u4E0D\u987E\uFF0C\u66F0\uFF1A\u201C\u543E\u95FB\u695A\u6709\u795E\u9F9F\uFF0C\u6B7B\u5DF2\u4E09\u5343\u5C81\u77E3\u3002\u738B\u5DFE\u7B0B\u800C\u85CF\u4E4B\u5E99\u5802\u4E4B\u4E0A\u3002\u6B64\u9F9F\u8005\uFF0C\u5B81\u5176\u6B7B\u4E3A\u7559\u9AA8\u800C\u8D35\u4E4E\uFF1F\u5B81\u5176\u751F\u800C\u66F3\u5C3E\u4E8E\u6D82\u4E2D\u4E4E\uFF1F\u201D\u4E8C\u5927\u592B\u66F0\uFF1A\u201C\u5B81\u751F\u800C\u66F3\u5C3E\u6D82\u4E2D\u3002\u201D\u5E84\u5B50\u66F0\uFF1A\u201C\u5F80\u77E3\uFF01\u543E\u5C06\u66F3\u5C3E\u4E8E\u6D82\u4E2D\u3002\u201D`,
+                        translation: '\u5E84\u5B50\u5728\u6fee\u6C34\u8FB9\u9493\u9C7C\u3002\u695A\u738B\u6D3E\u4E24\u4F4D\u5927\u592B\u5148\u53BB\u8868\u8FBE\u610F\u613F\uFF0C\u8BF4\uFF1A\u201C\u5E0C\u671B\u80FD\u7528\u695A\u56FD\u7684\u56FD\u4E8B\u6765\u52B3\u70E6\u60A8\uFF01\u201D\u5E84\u5B50\u62FF\u7740\u9493\u7AFF\u6CA1\u6709\u56DE\u5934\uFF0C\u8BF4\uFF1A\u201C\u6211\u542C\u8BF4\u695A\u56FD\u6709\u4E00\u53EA\u795E\u9F9F\uFF0C\u5DF2\u7ECF\u6B7B\u4E86\u4E09\u5343\u5E74\u4E86\u3002\u695A\u738B\u7528\u7AF9\u7BB1\u88C5\u7740\u5B83\uFF0C\u7528\u4E1D\u7EF8\u76D6\u7740\u5B83\uFF0C\u73CD\u85CF\u5728\u5E99\u5802\u4E4B\u4E0A\u3002\u8FD9\u53EA\u9F9F\uFF0C\u5B83\u662F\u5B81\u613F\u6B7B\u4E86\u7559\u4E0B\u9AA8\u9ABC\u88AB\u4EBA\u5C0A\u8D35\u5462\uFF1F\u8FD8\u662F\u5B81\u613F\u6D3B\u7740\u5728\u6CE5\u5730\u91CC\u62D6\u7740\u5C3E\u5DF4\u722C\u5462\uFF1F\u201D\u4E24\u4F4D\u5927\u592B\u8BF4\uFF1A\u201C\u5B81\u613F\u6D3B\u7740\u5728\u6CE5\u5730\u91CC\u62D6\u7740\u5C3E\u5DF4\u3002\u201D\u5E84\u5B50\u8BF4\uFF1A\u201C\u4F60\u4EEC\u56DE\u53BB\u5427\uFF01\u6211\u4E5F\u5B81\u613F\u5728\u6CE5\u5730\u91CC\u62D6\u7740\u5C3E\u5DF4\u3002\u201D'
+                    },
+                    butterfly: {
+                        icon: 'assets/items/butterfly.jpg',
+                        title: '\u5E84\u5468\u68A6\u8776',
+                        source: '\u300A\u5E84\u5B50\u00B7\u9F50\u7269\u8BBA\u300B',
+                        story: `\u201C\u4E0D\u77E5\u5468\u4E4B\u68A6\u4E3A\u80E1\u8776\u4E0E\uFF0C\u80E1\u8776\u4E4B\u68A6\u4E3A\u5468\u4E0E\uFF1F\u201D\u5E84\u5468\u68A6\u89C1\u81EA\u5DF1\u53D8\u6210\u4E86\u8774\u8776\uFF0C\u9192\u6765\u540E\u4E0D\u77E5\u662F\u5E84\u5468\u68A6\u8776\uFF0C\u8FD8\u662F\u8774\u8776\u68A6\u5E84\u5468\u3002`,
+                        insight: '\u4F60\u6DF1\u4FE1\u4E0D\u7591\u7684\u4E1C\u897F\uFF0C\u4E5F\u8BB8\u6362\u4E2A\u89D2\u5EA6\u770B\u5C31\u5B8C\u5168\u4E0D\u540C\u4E86\u3002',
+                        originalText: `\u6614\u8005\u5E84\u5468\u68A6\u4E3A\u80E1\u8776\uFF0C\u6838\u6838\u7136\u80E1\u8776\u4E5F\u3002\u81EA\u559C\u5176\u5FD7\u4E0E\uFF01\u4E0D\u77E5\u5468\u4E4B\u68A6\u4E3A\u80E1\u8776\u4E0E\uFF0C\u80E1\u8776\u4E4B\u68A6\u4E3A\u5468\u4E0E\u3002\u5468\u4E0E\u80E1\u8776\u5219\u5FC5\u6709\u5206\u77E3\u3002\u6B64\u4E4B\u8C13\u7269\u5316\u3002`,
+                        translation: '\u4ECE\u524D\u5E84\u5468\u68A6\u89C1\u81EA\u5DF1\u53D8\u6210\u4E86\u8774\u8776\uFF0C\u98D8\u98D8\u7136\u7684\uFF0C\u771F\u89C9\u5F97\u81EA\u5DF1\u5C31\u662F\u4E00\u53EA\u8774\u8776\uFF0C\u5FC3\u91CC\u5F88\u5F00\u5FC3\uFF01\u4E0D\u77E5\u9053\u662F\u5E84\u5468\u68A6\u89C1\u53D8\u6210\u4E86\u8774\u8776\u5462\uFF0C\u8FD8\u662F\u8774\u8776\u68A6\u89C1\u53D8\u6210\u4E86\u5E84\u5468\u5462\uFF1F\u5E84\u5468\u548C\u8774\u8776\u5B9A\u7136\u662F\u6709\u533A\u522B\u7684\u3002\u8FD9\u5C31\u53EB\u505A\u7269\u7684\u8F6C\u5316\u3002'
+                    },
+                    knife: {
+                        icon: 'assets/items/butcher-knife.jpg',
+                        title: '\u5E96\u4E01\u89E3\u725B',
+                        source: '\u300A\u5E84\u5B50\u00B7\u517B\u751F\u4E3B\u300B',
+                        story: `\u201C\u4EE5\u65E0\u539A\u5165\u6709\u95F4\uFF0C\u6062\u6062\u4E4E\u5176\u4E8E\u6E38\u5203\u5FC5\u6709\u4F59\u5730\u77E3\u3002\u201D\u5E96\u4E01\u7684\u5200\u7528\u4E86\u5341\u4E5D\u5E74\u4F9D\u7136\u950B\u5229\uFF0C\u56E0\u4E3A\u4ED6\u4ECE\u4E0D\u786C\u78B0\u786C\uFF0C\u800C\u662F\u987A\u7740\u725B\u4F53\u7684\u7EB9\u7406\u6E38\u8D70\u3002`,
+                        insight: '\u522B\u786C\u78B0\u786C\u3002\u5148\u770B\u6E05\u4E8B\u7269\u7684\u7EB9\u7406\uFF0C\u627E\u5230\u7F1D\u9699\uFF0C\u518D\u8F7B\u677E\u7A7F\u8FC7\u3002',
+                        originalText: `\u5E96\u4E01\u4E3A\u6587\u60E0\u541B\u89E3\u725B\uFF0C\u624B\u6240\u89E6\uFF0C\u80A9\u6240\u501A\uFF0C\u8DB3\u6240\u5C65\uFF0C\u819D\u6240\u7EDE\uFF0C\u8DA3\u7136\u5411\u7136\uFF0C\u594F\u5200\u8DAE\u7136\uFF0C\u83AB\u4E0D\u4E2D\u97F3\u3002\u6587\u60E0\u541B\u66F0\uFF1A\u201C\u8C2A\uFF0C\u5584\u6B32\uFF01\u6280\u76D6\u81F3\u6B64\u4E4E\uFF1F\u201D\u5E96\u4E01\u91CA\u5200\u5BF9\u66F0\uFF1A\u201C\u81E3\u4E4B\u6240\u597D\u8005\u9053\u4E5F\uFF0C\u8FDB\u4E8E\u6280\u77E3\u3002\u59CB\u81E3\u4E4B\u89E3\u725B\u4E4B\u65F6\uFF0C\u6240\u89C1\u65E0\u975E\u725B\u8005\u3002\u4E09\u5E74\u4E4B\u540E\uFF0C\u672A\u5C1D\u89C1\u5168\u725B\u4E5F\u3002\u65B9\u4ECA\u4E4B\u65F6\uFF0C\u81E3\u4EE5\u795E\u9047\u800C\u4E0D\u4EE5\u76EE\u89C6\uFF0C\u5B98\u77E5\u6B62\u800C\u795E\u6B32\u884C\u3002\u4F9D\u4E8E\u5929\u7406\uFF0C\u6252\u5927\u90C1\uFF0C\u5BFC\u5927\u7A9D\uFF0C\u5B9E\u800C\u865A\u8FBE\uFF0C\u82E5\u7136\u5DF2\u3002\u6BCF\u89C1\u4E8E\u5FAE\u96BE\uFF0C\u6211\u606F\u7136\u4E3A\u6212\uFF0C\u89C6\u6B62\u800C\u795E\u884C\uFF0C\u52A8\u5200\u751A\u5FAE\uFF0C\u8C64\u7136\u5DF2\u89E3\uFF0C\u5982\u571F\u59D4\u5730\u3002\u63D0\u5200\u800C\u7ACB\uFF0C\u56DB\u987E\u76EF\u7684\u3002\u201D`,
+                        translation: '\u5E96\u4E01\u4E3A\u6587\u60E0\u541B\u5B60\u89E3\u7272\u7272\uFF0C\u624B\u89E6\u5230\u7684\u5730\u65B9\uFF0C\u80A9\u8180\u9760\u5230\u7684\u5730\u65B9\uFF0C\u811A\u8E29\u5230\u7684\u5730\u65B9\uFF0C\u819D\u76D6\u9876\u5230\u7684\u5730\u65B9\uFF0C\u90FD\u53D1\u51FA\u54D7\u54D7\u7684\u54CD\u58F0\uFF0C\u8FD0\u5200\u65F6\u4E5F\u53D1\u51FA\u9F13\u58F0\uFF0C\u6CA1\u6709\u4E0D\u5408\u97F3\u5F8B\u7684\u3002\u6587\u60E0\u541B\u8BF4\uFF1A\u201C\u54CE\uFF0C\u592A\u5999\u4E86\uFF01\u6280\u672F\u600E\u4E48\u80FD\u8FBE\u5230\u8FD9\u6837\u7684\u5730\u6B65\u5462\uFF1F\u201D\u5E96\u4E01\u653E\u4E0B\u5200\u56DE\u7B54\u8BF4\uFF1A\u201C\u6211\u6240\u7231\u597D\u7684\u662F\u9053\uFF0C\u8FDB\u5165\u4E86\u6280\u672F\u7684\u5883\u754C\u3002\u6211\u521A\u5F00\u59CB\u5B60\u89E3\u7272\u7272\u7684\u65F6\u5019\uFF0C\u770B\u5230\u7684\u65E0\u975E\u5C31\u662F\u4E00\u5934\u5B8C\u6574\u7684\u725B\u3002\u4E09\u5E74\u4E4B\u540E\uFF0C\u6211\u518D\u4E5F\u770B\u4E0D\u5230\u6574\u5934\u725B\u4E86\u3002\u5230\u4E86\u73B0\u5728\uFF0C\u6211\u7528\u7CBE\u795E\u53BB\u611F\u5E94\u800C\u4E0D\u7528\u773C\u775B\u53BB\u770B\uFF0C\u611F\u5B98\u505C\u4E0B\u6765\u800C\u7CBE\u795E\u5728\u8FD0\u884C\u3002\u987A\u7740\u5929\u7136\u7684\u7ED3\u6784\uFF0C\u5228\u5F00\u5927\u7684\u7F1D\u9699\uFF0C\u5BFC\u5165\u7A7A\u7684\u95F4\u9699\uFF0C\u4F9D\u7167\u672C\u6765\u7684\u6837\u5B50\u52A8\u4F5C\uFF0C\u4ECE\u672A\u78B0\u5230\u8FC7\u7B4B\u8109\u76F8\u8FDE\u7684\u5730\u65B9\uFF0C\u66F4\u6CA1\u78B0\u5230\u5927\u9AA8\u3002\u6BCF\u9047\u5230\u7EC6\u5FAE\u96BE\u529E\u7684\u5730\u65B9\uFF0C\u6211\u5C31\u8B66\u60D5\u5730\u505C\u4E0B\u6765\uFF0C\u76EE\u5149\u505C\u4F4F\u800C\u7CBE\u795E\u884C\u52A8\uFF0C\u5200\u5B50\u8F7B\u8F7B\u5730\u52A8\uFF0C\u54D7\u54D7\u5730\u5DF2\u7ECF\u89E3\u5F00\u4E86\uFF0C\u5982\u540C\u6CE5\u571F\u5D29\u6E83\u4E00\u822C\u3002\u63D0\u5200\u7AD9\u8D77\u6765\uFF0C\u56DB\u5468\u671B\u671B\uFF0C\u6B23\u8D4F\u8FD9\u4E00\u5207\u3002\u201D'
+                    },
+                    gourd: {
+                        icon: 'assets/items/gourd.jpg',
+                        title: '\u5927\u74E0\u4E4B\u79CD',
+                        source: '\u300A\u5E84\u5B50\u00B7\u9038\u9065\u6E38\u300B',
+                        story: `\u60E0\u5B50\u5ACC\u5927\u846B\u82A6\u6CA1\u7528\uFF0C\u5E84\u5B50\u5374\u8BF4\uFF1A\u201C\u4F55\u4E0D\u8651\u4EE5\u4E3A\u5927\u6A3D\u800C\u6D6E\u4E4E\u6C5F\u6E56\uFF1F\u201D\u4F60\u4EE5\u4E3A\u65E0\u7528\u7684\u4E1C\u897F\uFF0C\u53EA\u662F\u56E0\u4E3A\u4F60\u6CA1\u627E\u5230\u6B63\u786E\u7684\u7528\u6CD5\u3002`,
+                        insight: '\u89C9\u5F97\u4E00\u6837\u4E1C\u897F\u6CA1\u7528\uFF0C\u4E5F\u8BB8\u53EA\u662F\u4F60\u6CA1\u627E\u5230\u5BF9\u7684\u7528\u6CD5\u3002',
+                        originalText: `\u60E0\u5B50\u8C13\u5E84\u5B50\u66F0\uFF1A\u201C\u9B4F\u738B\u8D60\u6211\u5927\u74E0\u4E4B\u79CD\uFF0C\u6211\u6811\u4E4B\u6210\u800C\u5B9E\u4E94\u77F3\u3002\u4EE5\u76DB\u6C34\u6D46\uFF0C\u5176\u575A\u4E0D\u80FD\u81EA\u4E3E\u4E5F\u3002\u5251\u4E4B\u4E3A\u74E0\uFF0C\u5219\u74E0\u5E95\u5E73\u800C\u4E0D\u5BB9\u4E8E\u7269\u3002\u65E0\u6240\u7528\uFF0C\u51FF\u7136\u5176\u5927\u800C\u5598\u4E4B\u3002\u201D\u5E84\u5B50\u66F0\uFF1A\u201C\u5927\u4EBA\u56E0\u4E0D\u4EE5\u4E3A\u7528\u800C\u5802\u62F8\uFF0C\u6B64\u975E\u4EE5\u5927\u82E6\u4E5F\u3002\u590B\u6709\u5927\u74E0\uFF0C\u4F55\u4E0D\u8651\u4EE5\u4E3A\u5927\u6A3D\uFF0C\u800C\u6D6E\u4E4E\u6C5F\u6E56\uFF0C\u800C\u6101\u5176\u74E0\u65E0\u6240\u5BB9\uFF1F\u5219\u592B\u72B9\u6709\u8981\u4E4B\u5FC3\u800C\u72EC\u4EE5\u5176\u5927\u559A\u8005\u4E5F\u3002\u201D`,
+                        translation: '\u60E0\u5B50\u5BF9\u5E84\u5B50\u8BF4\uFF1A\u201C\u9B4F\u738B\u8D60\u7ED9\u6211\u5927\u846B\u82A6\u7684\u79CD\u5B50\uFF0C\u6211\u79CD\u690D\u540E\u7ED3\u51FA\u7684\u679C\u5B9E\u80FD\u88C5\u4E94\u6597\u7684\u5BB9\u91CF\u3002\u7528\u5B83\u6765\u88C5\u6C34\uFF0C\u5B83\u592A\u8106\u4E0D\u80FD\u81EA\u5DF1\u627F\u62C5\u91CD\u91CF\u3002\u5288\u5F00\u5B83\u5F53\u74E0\u7528\uFF0C\u5219\u74E0\u5E95\u592A\u6D45\uFF0C\u88C5\u4E0D\u4E0B\u4EC0\u4E48\u4E1C\u897F\u3002\u5B83\u65E2\u7136\u6CA1\u6709\u7528\u5904\uFF0C\u6211\u5C31\u628A\u5B83\u7838\u4E86\u3002\u201D\u5E84\u5B50\u8BF4\uFF1A\u201C\u4F60\u5B9E\u5728\u662F\u592A\u4E0D\u4F1A\u7528\u5927\u4E1C\u897F\u4E86\u3002\u5B8B\u4EBA\u6709\u5584\u4E8E\u4E0D\u9F9F\u624B\u7684\u836F\uFF0C\u8BF7\u5338\u5E08\u6765\u6D17\u5B83\uFF0C\u8BF4\uFF1A\u2018\u8BF7\u5338\u5E08\u7528\u8FD9\u4E2A\u836F\u6D17\u624B\u3002\u2019\u4E16\u4E0A\u5C31\u6CA1\u6709\u4E0D\u5F53\u624B\u5DE5\u5320\u4EBA\u7684\u6D3B\u4E86\uFF0C\u836F\u7684\u7528\u5904\u5C31\u662F\u4E0D\u9F9F\u624B\uFF0C\u800C\u4F60\u5374\u56E0\u4E3A\u5B83\u80FD\u6D17\u624B\u5C31\u60F3\u62CC\u4E86\u5B83\u3002\u73B0\u5728\u4F60\u6709\u8FD9\u4E48\u5927\u7684\u846B\u82A6\uFF0C\u4E3A\u4EC0\u4E48\u4E0D\u60F3\u7740\u628A\u5B83\u5F53\u4F5C\u8239\uFF0C\u6D6E\u5728\u6C5F\u6E56\u4E4B\u4E0A\uFF0C\u53CD\u800C\u53D1\u6101\u5B83\u592A\u5927\u88C5\u4E0D\u4E0B\u4E1C\u897F\u5462\uFF1F\u53EF\u89C1\u4F60\u7684\u5FC3\u601D\u8FD8\u662F\u592A\u62D8\u6CE5\u4E8E\u65E0\u7528\u4E4B\u7528\u4E86\u3002\u201D'
+                    },
+                    fish: {
+                        icon: 'assets/items/fishing-rod.jpg',
+                        title: '\u6DB8\u8F99\u4E4B\u9CA1',
+                        source: '\u300A\u5E84\u5B50\u00B7\u5916\u7269\u300B',
+                        story: `\u8F66\u8F99\u91CC\u5FEB\u6E34\u6B7B\u7684\u9CA8\u9C7C\u53EA\u9700\u8981\u4E00\u6597\u6C34\uFF0C\u76D1\u6CB3\u4FAF\u5374\u627F\u8BFA\u201C\u7B49\u6211\u6536\u4E86\u8D4B\u7A0E\uFF0C\u501F\u4F60\u4E09\u767E\u91D1\u201D\u3002\u5E84\u5B50\u6012\u9053\uFF1A\u8FDC\u671F\u7A7A\u8BDD\u6551\u4E0D\u4E86\u773C\u524D\u7684\u547D\u3002`,
+                        insight: '\u8BF4\u201C\u4EE5\u540E\u5E2E\u4F60\u201D\u5F80\u5F80\u662F\u6B64\u523B\u7684\u9003\u907F\u3002\u771F\u5E2E\u5FD9\u5C31\u73B0\u5728\u52A8\u3002',
+                        originalText: `\u5E84\u5468\u5BB6\u8D2B\uFF0C\u6545\u5F80\u8D37\u7C9F\u4E8E\u76D1\u6CB3\u4FAF\u3002\u76D1\u6CB3\u4FAF\u66F0\uFF1A\u201C\u8BFA\u3002\u5F97\u5E84\u91D1\uFF0C\u5C06\u8D37\u4E09\u767E\u91D1\u3002\u201D\u5E84\u5468\u6124\u7136\u4F5C\u8272\u66F0\uFF1A\u201C\u5468\u6765\u4E4B\uFF0C\u6709\u4E2D\u9053\u800C\u6D9E\u8005\uFF0C\u5468\u5E94\u5F97\u6C34\u4E4B\uFF0C\u4E14\u5C31\u4E0E\u4E4B\u3002\u4F46\u5C31\u6C34\u4E4B\uFF0C\u66F0\uFF1A\u201C\u6211\u5C06\u5357\u5F80\u5434\u8D8A\u4E4B\u738B\uFF0C\u6FC0\u897F\u6C5F\u4E4B\u6C34\u800C\u8FCE\u5B50\uFF0C\u53EF\u4E4E\uFF1F\u201D\u9CA1\u9C7C\u4E4E\u66F0\uFF1A\u201C\u543E\u5F97\u5347\u6597\u6C34\u6765\uFF0C\u5219\u6D3B\u77E3\u3002\u541B\u4E43\u8A00\u6B64\uFF0C\u6628\u4E4E\u5DF2\u6709\u5356\u9C7C\u5E97\u5904\uFF0C\u53EF\u4EE5\u5356\u5C94\u5C14\uFF01\u201D`,
+                        translation: '\u5E84\u5468\u5BB6\u91CC\u5F88\u7A77\uFF0C\u6240\u4EE5\u53BB\u76D1\u6CB3\u4FAF\u90A3\u91CC\u501F\u7CAE\u3002\u76D1\u6CB3\u4FAF\u8BF4\uFF1A\u201C\u597D\u3002\u7B49\u6211\u6536\u5230\u5C01\u5730\u7684\u79DF\u7A0E\uFF0C\u501F\u7ED9\u4F60\u4E09\u767E\u91D1\u3002\u201D\u5E84\u5468\u6C14\u5F97\u53D8\u4E86\u8138\u8272\u8BF4\uFF1A\u201C\u6211\u6765\u7684\u65F6\u5019\uFF0C\u5728\u8DEF\u4E2D\u542C\u5230\u6709\u4EBA\u547C\u5524\uFF0C\u6211\u56DE\u5934\u4E00\u770B\uFF0C\u53D1\u73B0\u8F66\u8F99\u91CC\u6709\u4E00\u6761\u9CA1\u9C7C\u3002\u6211\u5C31\u95EE\u5B83\uFF1A\u201C\u9CA1\u9C7C\uFF0C\u4F60\u662F\u600E\u4E48\u56DE\u4E8B\u7684\uFF1F\u201D\u9CA1\u9C7C\u8BF4\uFF1A\u201C\u6211\u662F\u4E1C\u6D77\u4E4B\u6CE2\u81E3\u3002\u541B\u5C82\u6709\u6597\u5347\u4E4B\u6C34\u800C\u6D3E\u6211\u4E4E\uFF1F\u201D\u6211\u8BF4\uFF1A\u201C\u597D\uFF0C\u6211\u6B63\u8981\u5357\u4E0B\u6E38\u8BF4\u5434\u8D8A\u4E4B\u738B\uFF0C\u5F15\u897F\u6C5F\u7684\u6C34\u6765\u8FCE\u63A5\u4F60\uFF0C\u53EF\u4EE5\u5417\uFF1F\u201D\u9CA1\u9C7C\u6C14\u6781\u4E86\u8BF4\uFF1A\u201C\u6211\u53EA\u9700\u8981\u4E00\u6597\u6C34\u5C31\u80FD\u6D3B\u547D\uFF0C\u4F60\u5374\u8BF4\u8FD9\u6837\u7684\u7A7A\u8BDD\u2014\u2014\u4E0D\u5982\u4F60\u65E9\u70B9\u53BB\u5E72\u8D27\u5E97\u627E\u6211\u5427\uFF01\u201D'
+                    },
+                    tree: {
+                        icon: 'assets/items/useless-tree.jpg',
+                        title: '\u65E0\u7528\u4E4B\u6728',
+                        source: '\u300A\u5E84\u5B50\u00B7\u4EBA\u95F4\u4E16\u300B',
+                        story: `\u4E00\u68F5\u5DE8\u5927\u7684\u680E\u6811\u56E0\u4E3A\u201C\u65E0\u7528\u201D\u5F97\u4EE5\u7EC8\u5176\u5929\u5E74\uFF0C\u800C\u90A3\u4E9B\u201C\u6709\u7528\u201D\u7684\u679C\u6811\u5374\u56E0\u679C\u5B9E\u88AB\u5265\u843D\u3001\u679D\u5E72\u88AB\u6298\u65AD\u3002\u680E\u6811\u8BF4\uFF1A\u201C\u6211\u7528\u65E0\u7528\u4FDD\u5168\u4E86\u81EA\u5DF1\uFF0C\u8FD9\u5C31\u662F\u6700\u5927\u7684\u7528\u5904\u3002\u201D`,
+                        insight: '\u6709\u65F6\u5019\uFF0C\u201C\u6CA1\u7528\u201D\u624D\u662F\u6700\u597D\u7684\u4FDD\u62A4\u8272\u3002',
+                        originalText: `\u5320\u77F3\u5F52\uFF0C\u680E\u6811\u89C1\u68A6\u66F0\uFF1A\u201C\u6C5D\u5C06\u60E1\u4E4E\u5320\u77F3\uFF0C\u51E0\u5C06\u8F90\u6211\u4EE5\u4E3A\u6750\u3002\u5320\u77F3\u5C06\u6B7B\u4E4E\u6827\uFF0C\u6827\u6B7B\u4EE5\u4E3A\u67F3\uFF0C\u67F3\u6B7B\u4EE5\u4E3A\u6750\u3002\u6750\u6B7B\u4E3A\u6848\u6258\uFF0C\u6848\u6258\u6B7B\u4E3A\u866B\u780C\uFF0C\u866B\u780C\u6B7B\u4E3A\u9EC4\u7269\uFF0C\u9EC4\u7269\u6B7B\u4E3A\u77E5\u7F9F\uFF0C\u77E5\u7F9F\u6B7B\u4E3A\u730E\u5F39\uFF0C\u730E\u5F39\u6B7B\u4E3A\u9E1F\u9F20\u3002\u6B64\u7687\u6728\u4E5F\uFF0C\u4EE5\u4E3A\u65E0\u7528\uFF0C\u6545\u80FD\u5982\u6B64\u5176\u5BFF\u4E5F\u3002\u201D\u5320\u77F3\u89C9\u8C08\uFF0C\u5F52\u544A\u5E84\u5B50\u3002\u5E84\u5B50\u66F0\uFF1A\u201C\u6B64\u6728\u4EE5\u4E0D\u624D\u5F97\u5176\u5929\u5E74\u3002\u201D`,
+                        translation: '\u6728\u5320\u77F3\u56DE\u5BB6\uFF0C\u680E\u6811\u5728\u68A6\u4E2D\u5BF9\u4ED6\u8BF4\uFF1A\u201C\u4F60\u5C06\u8981\u8C01\u6765\u5BB3\u6211\u5462\uFF1F\u51E0\u4E4E\u8981\u62FF\u6211\u5F53\u6750\u6599\u4E86\u3002\u5982\u679C\u7528\u6211\u505A\u8239\uFF0C\u8239\u6C89\u4E86\uFF1B\u7528\u6211\u505A\u68FA\u6750\uFF0C\u68FA\u6750\u5FEB\u8150\u4E86\uFF1B\u7528\u6211\u505A\u5668\u5177\uFF0C\u5668\u5177\u5FEB\u6BC1\u4E86\u3002\u8FD9\u90FD\u662F\u56E0\u4E3A\u6211\u662F\u4E0D\u6210\u6750\u7684\u6811\uFF0C\u6240\u4EE5\u624D\u80FD\u6D3B\u5230\u8FD9\u6837\u957F\u5BFF\u3002\u201D\u6728\u5320\u77F3\u9192\u6765\u544A\u8BC9\u5E84\u5B50\u3002\u5E84\u5B50\u8BF4\uFF1A\u201C\u8FD9\u68F5\u6811\u56E0\u4E3A\u4E0D\u6210\u6750\uFF0C\u624D\u80FD\u5F97\u4EE5\u7EC8\u5176\u5929\u5E74\u3002\u201D'
+                    }
+                },
+                scenes: [
+                    { items: ['tree', 'fish'] },
+                    { items: ['turtle', 'butterfly'] },
+                    { items: ['knife', 'gourd'] }
+                ]
+            }
+        };
+
+        /* ==================== State ==================== */
+        var geniusKeys = Object.keys(geniusData);
+        var currentGeniusIdx = 0;
+        var currentGeniusKey = geniusKeys[0];
+        var currentScene = 0;
+        var totalScenes = 3;
+        var touchStartX = 0;
+        var collectedItems = new Set();
+        var viewedItems = new Set();
+        var currentItem = null;
+
+        function loadProgress() {
+            try {
+                var savedCollected = JSON.parse(localStorage.getItem('gifts_of_genius_collected') || '[]');
+                savedCollected.forEach(function(id) { collectedItems.add(id); });
+                var savedViewed = JSON.parse(localStorage.getItem('gifts_of_genius_viewed') || '[]');
+                savedViewed.forEach(function(id) { viewedItems.add(id); });
+            } catch(e) {}
+        }
+        function saveCollected() {
+            try { localStorage.setItem('gifts_of_genius_collected', JSON.stringify(Array.from(collectedItems))); } catch(e) {}
+        }
+        function saveViewed() {
+            try { localStorage.setItem('gifts_of_genius_viewed', JSON.stringify(Array.from(viewedItems))); } catch(e) {}
+        }
+
+        function getItemsData() {
+            return geniusData[currentGeniusKey].items;
+        }
+        function getTotalItems() {
+            return Object.keys(getItemsData()).length;
+        }
+
+        /* ==================== Genius Selector ==================== */
+        function updateGeniusSelector() {
+            var data = geniusData[currentGeniusKey];
+            document.getElementById('genius-name').textContent = data.name;
+            document.getElementById('genius-field').textContent = data.field;
+            document.getElementById('genius-portrait-img').src = data.portrait;
+            document.getElementById('genius-portrait-img').alt = data.name;
+            var upBtn = document.getElementById('genius-up');
+            var downBtn = document.getElementById('genius-down');
+            upBtn.classList.toggle('disabled', currentGeniusIdx === 0);
+            downBtn.classList.toggle('disabled', currentGeniusIdx === geniusKeys.length - 1);
+            document.getElementById('collect-total').textContent = getTotalItems();
+        }
+
+        document.getElementById('genius-up').addEventListener('click', function() {
+            if (currentGeniusIdx <= 0) return;
+            currentGeniusIdx--;
+            currentGeniusKey = geniusKeys[currentGeniusIdx];
+            resetAndRenderGenius();
+        });
+        document.getElementById('genius-down').addEventListener('click', function() {
+            if (currentGeniusIdx >= geniusKeys.length - 1) return;
+            currentGeniusIdx++;
+            currentGeniusKey = geniusKeys[currentGeniusIdx];
+            resetAndRenderGenius();
+        });
+
+        function resetAndRenderGenius() {
+            collectedItems.clear();
+            viewedItems.clear();
+            saveCollected();
+            saveViewed();
+            updateGeniusSelector();
+            updateCollectHud();
+            updateFavBtn();
+            currentScene = 0;
+            goToScene(0);
+        }
+
+        /* ==================== Scene Navigation ==================== */
+        function goToScene(idx) {
+            if (idx < 0 || idx >= totalScenes) return;
+            currentScene = idx;
+            var track = document.getElementById('scenes-track');
+            track.style.transform = 'translateX(-' + (currentScene * (100 / totalScenes)) + '%)';
+
+            /* Slide panorama background in sync */
+            /* Update CSS scene based on current view */
+            var viewport = document.getElementById('scenes-viewport');
+            if (viewport) {
+                viewport.setAttribute('data-scene', idx);
+            }
+
+            var leftArrow = document.getElementById('scene-arrow-left');
+            var rightArrow = document.getElementById('scene-arrow-right');
+            leftArrow.classList.toggle('disabled', currentScene === 0);
+            rightArrow.classList.toggle('disabled', currentScene === totalScenes - 1);
+
+            document.querySelectorAll('.scene-dot').forEach(function(dot, i) {
+                dot.classList.toggle('active', i === currentScene);
+            });
+        }
+
+        document.getElementById('scene-arrow-left').addEventListener('click', function() {
+            goToScene(currentScene - 1);
+        });
+        document.getElementById('scene-arrow-right').addEventListener('click', function() {
+            goToScene(currentScene + 1);
+        });
+
+        document.querySelectorAll('.scene-dot').forEach(function(dot) {
+            dot.addEventListener('click', function() {
+                var scene = parseInt(this.getAttribute('data-scene'), 10);
+                goToScene(scene);
+            });
+        });
+
+        document.getElementById('scenes-viewport').addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        document.getElementById('scenes-viewport').addEventListener('touchend', function(e) {
+            var touchEndX = e.changedTouches[0].screenX;
+            var diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) goToScene(currentScene + 1);
+                else goToScene(currentScene - 1);
+            }
+        }, { passive: true });
+
+        /* ==================== Item Modal ==================== */
+        function openItem(id) {
+            currentItem = id;
+            viewedItems.add(id);
+            saveViewed();
+            var items = getItemsData();
+            var data = items[id];
+            if (!data) return;
+
+            document.getElementById('modal-icon').innerHTML = '<img src="' + data.icon + '" alt="" style="width:84px;height:84px;border-radius:14px;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,0.3);">';
+            document.getElementById('modal-title').textContent = data.title;
+            document.getElementById('modal-source').textContent = '\u51FA\u5904\uFF1A' + data.source;
+            document.getElementById('modal-story').textContent = data.story;
+            document.getElementById('modal-insight').textContent = data.insight;
+
+            var detailBtn = document.getElementById('detail-toggle-btn');
+            var detailArea = document.getElementById('item-detail');
+            detailBtn.classList.remove('active');
+            detailArea.classList.remove('active');
+            detailBtn.textContent = '\u67E5\u770B\u8BE6\u60C5';
+
+            document.getElementById('detail-original').textContent = data.originalText || '';
+            document.getElementById('detail-translation').textContent = data.translation || '';
+            document.getElementById('detail-source-full').textContent = data.source || '';
+
+            var btn = document.getElementById('modal-collect');
+            if (collectedItems.has(id)) {
+                btn.textContent = '\u53D6\u6D88\u6536\u85CF';
+                btn.classList.add('collected');
+            } else {
+                btn.textContent = '\u52A0\u5165\u6536\u85CF';
+                btn.classList.remove('collected');
+            }
+
+            document.getElementById('item-modal').classList.add('active');
+            updateCollectHud();
+        }
+
+        function closeItem() {
+            document.getElementById('item-modal').classList.remove('active');
+            currentItem = null;
+        }
+
+        document.getElementById('scenes-viewport').addEventListener('click', function(e) {
+            var coll = e.target.closest('.collectible');
+            if (coll) {
+                var id = coll.getAttribute('data-id');
+                if (id) openItem(id);
+            }
+        });
+
+        document.getElementById('modal-close-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeItem();
+        });
+        document.getElementById('modal-close-text-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeItem();
+        });
+        document.getElementById('item-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeItem();
+        });
+
+        /* Detail toggle */
+        document.getElementById('detail-toggle-btn').addEventListener('click', function() {
+            var detailArea = document.getElementById('item-detail');
+            var isActive = detailArea.classList.toggle('active');
+            this.classList.toggle('active', isActive);
+            this.textContent = isActive ? '\u6536\u8D77\u8BE6\u60C5' : '\u67E5\u770B\u8BE6\u60C5';
+        });
+
+        /* ==================== Collect ==================== */
+        function collectCurrentItem() {
+            if (!currentItem) return;
+            var btn = document.getElementById('modal-collect');
+            if (collectedItems.has(currentItem)) {
+                // 取消收藏
+                collectedItems.delete(currentItem);
+                saveCollected();
+                var el = document.querySelector('.collectible[data-id="' + currentItem + '"]');
+                if (el) el.classList.remove('collected');
+                btn.textContent = '\u52A0\u5165\u6536\u85CF';
+                btn.classList.remove('collected');
+            } else {
+                // 加入收藏
+                collectedItems.add(currentItem);
+                saveCollected();
+                var el = document.querySelector('.collectible[data-id="' + currentItem + '"]');
+                if (el) el.classList.add('collected');
+                btn.textContent = '\u53D6\u6D88\u6536\u85CF';
+                btn.classList.add('collected');
+            }
+            updateCollectHud();
+            updateFavBtn();
+        }
+
+        function updateCollectHud() {
+            var total = getTotalItems();
+            document.getElementById('collect-count').textContent = viewedItems.size;
+            document.getElementById('collect-total').textContent = total;
+            document.getElementById('collect-hud-fill').style.width = ((viewedItems.size / total) * 100) + '%';
+        }
+
+        function updateFavBtn() {
+            var btn = document.getElementById('scene-fav-btn');
+            btn.classList.toggle('has-items', collectedItems.size > 0);
+        }
+
+        document.getElementById('modal-collect').addEventListener('click', function(e) {
+            e.stopPropagation();
+            collectCurrentItem();
+        });
+
+        /* ==================== Favorites Modal (centered popup) ==================== */
+        function renderFavorites() {
+            var body = document.getElementById('fav-modal-body');
+            if (collectedItems.size === 0) {
+                body.innerHTML = '<div class="fav-modal-empty">\u8FD8\u6CA1\u6709\u6536\u96C6\u4EFB\u4F55\u7269\u54C1\uFF0C\u53BB\u63A2\u7D22\u5427</div>';
+                return;
+            }
+            var items = getItemsData();
+            var html = '';
+            collectedItems.forEach(function(id) {
+                var d = items[id];
+                if (!d) return;
+                html += '<div class="fav-modal-item" data-id="' + id + '">' +
+                    '<span class="fav-modal-item-icon"><img src="' + d.icon + '" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;"></span>' +
+                    '<div class="fav-modal-item-info">' +
+                    '<div class="fav-modal-item-name">' + d.title + '</div>' +
+                    '<div class="fav-modal-item-source">' + d.source + '</div>' +
+                    '</div></div>';
+            });
+            body.innerHTML = html;
+        }
+
+        function openFavorites() {
+            renderFavorites();
+            document.getElementById('fav-modal').classList.add('active');
+        }
+
+        function closeFavorites() {
+            document.getElementById('fav-modal').classList.remove('active');
+        }
+
+        document.getElementById('scene-fav-btn').addEventListener('click', function() {
+            if (document.getElementById('fav-modal').classList.contains('active')) {
+                closeFavorites();
+            } else {
+                openFavorites();
+            }
+        });
+        document.getElementById('fav-modal-close').addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeFavorites();
+        });
+        document.getElementById('fav-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeFavorites();
+        });
+
+        document.getElementById('fav-modal-body').addEventListener('click', function(e) {
+            var item = e.target.closest('.fav-modal-item');
+            if (item) {
+                var id = item.getAttribute('data-id');
+                if (id) {
+                    closeFavorites();
+                    setTimeout(function() { openItem(id); }, 100);
+                }
+            }
+        });
+
+        /* ==================== Keyboard ==================== */
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                if (e.target.closest('.genius-selector')) {
+                    var upBtn = document.getElementById('genius-up');
+                    if (!upBtn.classList.contains('disabled')) upBtn.click();
+                } else {
+                    goToScene(currentScene - 1);
+                }
+            } else if (e.key === 'ArrowRight') {
+                if (e.target.closest('.genius-selector')) {
+                    var downBtn = document.getElementById('genius-down');
+                    if (!downBtn.classList.contains('disabled')) downBtn.click();
+                } else {
+                    goToScene(currentScene + 1);
+                }
+            }
+            else if (e.key === 'Escape') {
+                if (document.getElementById('item-modal').classList.contains('active')) {
+                    closeItem();
+                } else if (document.getElementById('fav-modal').classList.contains('active')) {
+                    closeFavorites();
+                }
+            }
+        });
+
+        /* ==================== Init ==================== */
+        loadProgress();
+        updateGeniusSelector();
+        updateCollectHud();
+        /* Generate stars */
+        (function initStars() {
+            var container = document.getElementById('scene-stars');
+            /* Background dots */
+            for (var i = 0; i < 50; i++) {
+                var star = document.createElement('div');
+                star.className = 'star' + (Math.random() > 0.5 ? ' twinkle' : '');
+                var size = 1 + Math.random();
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.top = (Math.random() * 100) + '%';
+                star.style.left = (Math.random() * 100) + '%';
+                star.style.opacity = (0.2 + Math.random() * 0.5);
+                if (star.classList.contains('twinkle')) {
+                    star.style.setProperty('--dur', (2 + Math.random() * 4) + 's');
+                    star.style.animationDelay = (Math.random() * 3) + 's';
+                }
+                container.appendChild(star);
+            }
+            /* Decorative four-pointed stars */
+            for (var j = 0; j < 8; j++) {
+                var s = document.createElement('div');
+                s.className = 'star bright twinkle';
+                var sz = 2 + Math.random() * 1.5;
+                s.style.width = sz + 'px';
+                s.style.height = sz + 'px';
+                s.style.top = (Math.random() * 60) + '%';
+                s.style.left = (Math.random() * 100) + '%';
+                s.style.opacity = (0.4 + Math.random() * 0.4);
+                s.style.setProperty('--dur', (3 + Math.random() * 4) + 's');
+                s.style.animationDelay = (Math.random() * 3) + 's';
+                s.innerHTML = '<svg viewBox="0 0 12 12" width="' + sz + '" height="' + sz + '"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="rgba(220,215,200,0.85)"/></svg>';
+                container.appendChild(s);
+            }
+        })();
+
+        goToScene(0);
+
+        /* Click portrait to go to dialogue page */
+        document.getElementById('genius-portrait-link').addEventListener('click', function() {
+            window.location.href = 'dialogue.html';
+        });
+    </script>
+    <script src="_shared/js/animations.js"></script>
+</body>
+</html>

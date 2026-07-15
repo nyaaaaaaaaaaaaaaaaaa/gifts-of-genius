@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>决策测试 - 天才的遗赠 / Gifts of Genius</title>
+    <link rel="stylesheet" href="_shared/css/common.css">
+    <script src="_shared/js/echarts.min.js"></script>
+    <style>
+        body { padding-top: 60px; }
+
+        .decision {
+            background: var(--paper);
+            min-height: 100vh;
+            padding-bottom: 4rem;
+        }
+
+        .decision-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .decision-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .decision-header h2 {
+            font-size: 1.8rem;
+            letter-spacing: 0.15em;
+            margin-bottom: 0.5rem;
+        }
+        .decision-header p {
+            color: var(--mist);
+            font-size: 0.9rem;
+        }
+
+        .test-progress {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(139, 115, 85, 0.15);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--bamboo), var(--bamboo-light));
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        .progress-text {
+            font-size: 0.85rem;
+            color: var(--wood);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .scene-card {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(139, 115, 85, 0.22);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 24px rgba(139, 115, 85, 0.08);
+        }
+        .scene-context {
+            font-size: 0.8rem;
+            color: var(--bamboo);
+            letter-spacing: 0.1em;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        .scene-question {
+            font-size: 1.15rem;
+            line-height: 1.9;
+            margin-bottom: 2rem;
+            color: var(--ink);
+        }
+        .scene-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .scene-choice {
+            padding: 1.2rem 1.5rem;
+            background: rgba(245, 240, 232, 0.8);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            text-align: left;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--ink);
+        }
+        .scene-choice:hover {
+            border-color: var(--bamboo-light);
+            background: rgba(74, 124, 89, 0.06);
+            transform: translateX(6px);
+        }
+        .scene-choice.selected {
+            border-color: var(--bamboo);
+            background: rgba(74, 124, 89, 0.1);
+        }
+        .next-btn {
+            display: block;
+            margin: 2rem auto 0;
+            padding: 1rem 3rem;
+            background: var(--bamboo);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .next-btn:hover {
+            background: var(--bamboo-light);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(74, 124, 89, 0.3);
+        }
+        .next-btn:disabled {
+            background: var(--mist-light);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+        }
+        .results-section.active {
+            display: block;
+        }
+        .result-summary {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .result-summary h3 {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+        }
+        .top-match {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--bamboo), var(--bamboo-light));
+            color: white;
+            padding: 1.5rem 2.5rem;
+            border-radius: 16px;
+            margin: 1rem 0;
+        }
+        .top-match .name {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+        .top-match .percent {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+        .theory-brief {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--mist);
+            margin: 2rem 0 1rem;
+            letter-spacing: 0.03em;
+        }
+        .chart-container {
+            width: 100%;
+            height: 450px;
+            margin: 2rem 0;
+            background: rgba(255,255,255,0.6);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(139, 115, 85, 0.1);
+        }
+        .match-list {
+            display: grid;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .match-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.5rem;
+            background: rgba(255,255,255,0.7);
+            border-radius: 10px;
+            border: 1px solid rgba(139, 115, 85, 0.1);
+        }
+        .match-rank {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--wood);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .match-rank.top3 {
+            background: var(--bamboo);
+        }
+        .match-info {
+            flex: 1;
+        }
+        .match-name {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .match-field {
+            font-size: 0.8rem;
+            color: var(--mist);
+        }
+        .match-bar {
+            width: 120px;
+            height: 8px;
+            background: rgba(139, 115, 85, 0.15);
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .match-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--bamboo), var(--bamboo-light));
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        .match-percent {
+            min-width: 50px;
+            text-align: right;
+            font-weight: 700;
+            color: var(--bamboo);
+        }
+        .result-actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+        }
+        .restart-btn {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: transparent;
+            color: var(--wood);
+            border: 2px solid var(--wood);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .restart-btn:hover {
+            background: var(--wood);
+            color: white;
+        }
+        .share-btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: var(--bamboo);
+            color: white;
+            border: 2px solid var(--bamboo);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .share-btn:hover {
+            background: var(--bamboo-light);
+            border-color: var(--bamboo-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 124, 89, 0.3);
+        }
+
+        /* Share Modal */
+        .share-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .share-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        .share-modal-content {
+            background: var(--paper);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            transform: scale(0.92) translateY(16px);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        opacity 0.35s ease;
+        }
+        .share-modal.active .share-modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .share-modal-content h4 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--ink);
+        }
+        .share-modal-img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+        .share-modal-tip {
+            font-size: 0.85rem;
+            color: var(--mist);
+            margin-top: 0.75rem;
+            line-height: 1.7;
+        }
+        .save-img-btn {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.8rem 2rem;
+            background: var(--bamboo);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .save-img-btn:hover {
+            background: var(--bamboo-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 124, 89, 0.3);
+        }
+        .share-modal-close {
+            position: absolute;
+            top: 0.8rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--mist);
+            cursor: pointer;
+            line-height: 1;
+            font-family: inherit;
+        }
+        .share-modal-close:hover {
+            color: var(--ink);
+        }
+
+        /* ========== Pagination ========== */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-top: 1.5rem;
+        }
+        .page-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(139, 115, 85, 0.2);
+            background: transparent;
+            color: var(--wood);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .page-number:hover {
+            border-color: rgba(139, 115, 85, 0.4);
+            background: rgba(139, 115, 85, 0.06);
+        }
+        .page-number.active {
+            background: var(--bamboo);
+            border-color: var(--bamboo);
+            color: #fff;
+        }
+        .page-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(139, 115, 85, 0.15);
+        }
+
+        @media (max-width: 768px) {
+            .scene-card { padding: 1.5rem; }
+            .chart-container { height: 350px; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="index.html" class="nav-brand">天才的遗赠 <small>Gifts of Genius</small></a>
+        <div class="nav-links">
+            <a href="index.html" id="nav-home">首页</a>
+            <a href="explore.html" id="nav-explore">探索</a>
+            <a href="dialogue.html" id="nav-dialogue">对话</a>
+            <a href="decision.html" id="nav-decision" class="active">决策测试</a>
+        </div>
+    </nav>
+
+    <div class="decision">
+        <div class="decision-container">
+            <div class="decision-header">
+                <h2>决策相似度测试</h2>
+                <p>面对历史上真实的不确定性抉择，你的价值观与哪位天才最为共鸣？</p>
+            </div>
+
+            <div id="test-section">
+                <div class="test-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text">0 / 5</div>
+                </div>
+                <div id="scene-container"></div>
+            </div>
+
+            <div class="results-section" id="results-section">
+                <div class="result-summary">
+                    <h3>测试完成</h3>
+                    <p style="color: var(--mist); margin-bottom: 1rem;">你的决策价值观与这位天才最为接近</p>
+                    <div class="top-match">
+                        <div class="name" id="top-name">-</div>
+                        <div class="percent" id="top-percent">-%</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">价值观共鸣度</div>
+                    </div>
+                </div>
+
+                <div class="chart-container" id="radar-chart"></div>
+
+                <h3 style="text-align: center; margin: 2rem 0 1rem; font-size: 1.2rem;">完整排名</h3>
+                <div class="match-list" id="match-list"></div>
+
+                <p class="theory-brief">ℹ️ 基于施瓦茨基本价值观理论（Schwartz Theory of Basic Values）</p>
+
+                <div class="result-actions">
+                    <button class="share-btn" id="share-btn"><svg class="btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> 分享</button>
+                    <button class="restart-btn" id="restart-btn">重新测试</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分享弹窗 -->
+    <div class="share-modal" id="share-modal">
+        <div class="share-modal-content">
+            <button class="share-modal-close" id="share-modal-close">&times;</button>
+            <h4>分享你的测试结果</h4>
+            <img class="share-modal-img" id="share-modal-img" alt="分享图">
+            <button class="save-img-btn" id="save-img-btn">保存图片</button>
+        </div>
+    </div>
+
+    <script>
+        var geniusProfiles = {
+            // ===== 东方哲学（4人）=====
+            '庄子': { name: '庄子', field: '哲学 · 道家', values: { selfDirection: 98, stimulation: 65, hedonism: 50, achievement: 10, power: 2, security: 20, conformity: 5, tradition: 35, benevolence: 45, universalism: 70 } },
+            '孔子': { name: '孔子', field: '哲学 · 儒家', values: { selfDirection: 55, stimulation: 25, hedonism: 15, achievement: 70, power: 40, security: 70, conformity: 80, tradition: 98, benevolence: 95, universalism: 65 } },
+            '王阳明': { name: '王阳明', field: '哲学 · 心学', values: { selfDirection: 75, stimulation: 40, hedonism: 20, achievement: 85, power: 65, security: 55, conformity: 50, tradition: 75, benevolence: 95, universalism: 60 } },
+            '墨子': { name: '墨子', field: '哲学 · 墨家', values: { selfDirection: 45, stimulation: 30, hedonism: 10, achievement: 80, power: 35, security: 60, conformity: 70, tradition: 40, benevolence: 98, universalism: 95 } },
+            // ===== 西方哲学（4人）=====
+            '苏格拉底': { name: '苏格拉底', field: '哲学 · 古希腊', values: { selfDirection: 85, stimulation: 50, hedonism: 20, achievement: 40, power: 5, security: 15, conformity: 10, tradition: 30, benevolence: 60, universalism: 75 } },
+            '康德': { name: '康德', field: '哲学 · 德国古典', values: { selfDirection: 60, stimulation: 25, hedonism: 15, achievement: 80, power: 20, security: 50, conformity: 60, tradition: 70, benevolence: 85, universalism: 98 } },
+            '尼采': { name: '尼采', field: '哲学 · 存在主义', values: { selfDirection: 98, stimulation: 85, hedonism: 60, achievement: 70, power: 75, security: 10, conformity: 5, tradition: 8, benevolence: 20, universalism: 40 } },
+            '卢梭': { name: '卢梭', field: '哲学 · 启蒙运动', values: { selfDirection: 65, stimulation: 45, hedonism: 35, achievement: 45, power: 15, security: 35, conformity: 15, tradition: 25, benevolence: 75, universalism: 90 } },
+            // ===== 社会科学（2人）=====
+            '维特根斯坦': { name: '维特根斯坦', field: '社会科学 · 分析哲学', values: { selfDirection: 92, stimulation: 55, hedonism: 15, achievement: 60, power: 10, security: 35, conformity: 15, tradition: 20, benevolence: 35, universalism: 50 } },
+            '荣格': { name: '荣格', field: '社会科学 · 分析心理学', values: { selfDirection: 70, stimulation: 45, hedonism: 30, achievement: 60, power: 25, security: 60, conformity: 30, tradition: 90, benevolence: 55, universalism: 70 } },
+            // ===== 自然科学（4人）=====
+            '费曼': { name: '费曼', field: '自然科学 · 理论物理', values: { selfDirection: 80, stimulation: 95, hedonism: 75, achievement: 70, power: 15, security: 25, conformity: 10, tradition: 15, benevolence: 45, universalism: 60 } },
+            '爱因斯坦': { name: '爱因斯坦', field: '自然科学 · 理论物理', values: { selfDirection: 85, stimulation: 70, hedonism: 40, achievement: 90, power: 15, security: 30, conformity: 20, tradition: 25, benevolence: 60, universalism: 95 } },
+            '薛定谔': { name: '薛定谔', field: '自然科学 · 量子物理', values: { selfDirection: 78, stimulation: 70, hedonism: 50, achievement: 65, power: 20, security: 45, conformity: 25, tradition: 40, benevolence: 50, universalism: 85 } },
+            '居里夫人': { name: '居里夫人', field: '自然科学 · 放射化学', values: { selfDirection: 70, stimulation: 55, hedonism: 20, achievement: 95, power: 20, security: 40, conformity: 30, tradition: 35, benevolence: 75, universalism: 85 } },
+            // ===== 文学（3人）=====
+            '鲁迅': { name: '鲁迅', field: '文学 · 批判现实主义', values: { selfDirection: 88, stimulation: 55, hedonism: 10, achievement: 75, power: 20, security: 15, conformity: 5, tradition: 20, benevolence: 70, universalism: 85 } },
+            '杜甫': { name: '杜甫', field: '文学 · 现实主义', values: { selfDirection: 45, stimulation: 20, hedonism: 10, achievement: 55, power: 10, security: 30, conformity: 35, tradition: 85, benevolence: 98, universalism: 95 } },
+            '托尔斯泰': { name: '托尔斯泰', field: '文学 · 人文主义', values: { selfDirection: 55, stimulation: 40, hedonism: 25, achievement: 80, power: 15, security: 35, conformity: 40, tradition: 70, benevolence: 95, universalism: 90 } },
+            // ===== 政治（2人）=====
+            '甘地': { name: '甘地', field: '政治 · 非暴力运动', values: { selfDirection: 50, stimulation: 20, hedonism: 10, achievement: 85, power: 5, security: 30, conformity: 45, tradition: 75, benevolence: 98, universalism: 98 } },
+            '秋瑾': { name: '秋瑾', field: '政治 · 革命先驱', values: { selfDirection: 92, stimulation: 70, hedonism: 20, achievement: 80, power: 30, security: 10, conformity: 8, tradition: 25, benevolence: 75, universalism: 88 } },
+            // ===== 慈善（1人）=====
+            '戴安娜·弗兰西斯·斯宾塞': { name: '戴安娜·弗兰西斯·斯宾塞', field: '慈善 · 人道主义', values: { selfDirection: 72, stimulation: 60, hedonism: 45, achievement: 55, power: 15, security: 25, conformity: 10, tradition: 30, benevolence: 92, universalism: 90 } }
+        };
+
+        var valueKeys = ['selfDirection', 'stimulation', 'hedonism', 'achievement', 'power', 'security', 'conformity', 'tradition', 'benevolence', 'universalism'];
+        var valueLabels = ['自我导向', '刺激', '享乐', '成就', '权力', '安全', '遵从', '传统', '仁慈', '普世'];
+
+        var scenes = [
+            {
+                context: '场景一',
+                question: '你收到一份工作邀请：薪水是目前的三倍，在大公司有明确的晋升路径。但你目前的工作虽然收入普通，却是你真正热爱的事业。你会？',
+                choices: [
+                    { text: '接受高薪。经济基础是一切理想的前提，先积累资源再说。', values: { security: 4, power: 2, achievement: 3, hedonism: 1, selfDirection: -2 } },
+                    { text: '毫不犹豫地留下。做自己热爱的事比什么都重要，钱够用就行。', values: { selfDirection: 4, hedonism: 2, stimulation: 1, power: -2, achievement: -1 } },
+                    { text: '去高薪岗位，但把业余时间全部投入热爱的事业。鱼和熊掌兼得。', values: { achievement: 3, stimulation: 2, selfDirection: 2, hedonism: 1, conformity: -1 } },
+                    { text: '仔细计算两边的长期价值，选择那个对世界贡献更大的方向。', values: { universalism: 4, benevolence: 2, achievement: 2, security: -1, power: -1 } }
+                ]
+            },
+            {
+                context: '场景二',
+                question: '你的团队即将做出一个重要决定，所有人都倾向方案A。但你经过深思熟虑，确信方案B更好。方案A也不会带来灾难，只是远非最优。此时你会？',
+                choices: [
+                    { text: '明确站出来反对，用数据和逻辑说服大家。真理比和谐更重要。', values: { selfDirection: 4, universalism: 2, achievement: 2, conformity: -3, tradition: -1 } },
+                    { text: '私下找关键人物沟通，尝试从内部影响决策，避免公开冲突。', values: { benevolence: 3, security: 2, conformity: 1, selfDirection: 1, achievement: 1 } },
+                    { text: '既然大家一致，就尊重集体决定。团队合作比个人正确更重要。', values: { conformity: 4, tradition: 2, benevolence: 2, security: 1, selfDirection: -3 } },
+                    { text: '不再多言，默默按自己的方式做出方案B的原型，用结果说话。', values: { achievement: 4, selfDirection: 3, stimulation: 1, power: -1, conformity: -2 } }
+                ]
+            },
+            {
+                context: '场景三',
+                question: '你的朋友犯了一个严重的错误，按照规则应当受到严厉处罚。但你深知ta的处境——ta是出于无奈才这么做，而且处罚会毁掉ta的人生。你手中有权影响结果。你会？',
+                choices: [
+                    { text: '严格按规则办事。规则面前人人平等，私情不能凌驾于公正之上。', values: { universalism: 4, conformity: 3, tradition: 2, benevolence: -1, security: 1 } },
+                    { text: '想方设法帮朋友减轻处罚。在规则允许的范围内最大限度地保护ta。', values: { benevolence: 4, selfDirection: 2, conformity: -2, security: 1, universalism: -1 } },
+                    { text: '利用自己的影响力推动规则本身的改革，让类似处境的人不再受困。', values: { universalism: 4, selfDirection: 3, achievement: 2, power: 2, tradition: -2 } },
+                    { text: '这件事让我重新审视这个规则本身是否合理——也许问题出在制度上。', values: { selfDirection: 3, stimulation: 3, tradition: -3, conformity: -2, universalism: 2 } }
+                ]
+            },
+            {
+                context: '场景四',
+                question: '你三十多岁，事业稳定，生活舒适。一个难得的机会出现了：去一个完全陌生的国家/领域从头开始，成功率不高，但如果成功将实现你一直以来的梦想。你会？',
+                choices: [
+                    { text: '立刻出发。人生苦短，不做会后悔一辈子。', values: { selfDirection: 4, stimulation: 4, hedonism: 2, security: -4, conformity: -2 } },
+                    { text: '不会贸然行动。稳定来之不易，要在充分评估风险后再做决定。', values: { security: 4, tradition: 2, achievement: 1, stimulation: -3, hedonism: -1 } },
+                    { text: '先做好两手准备——不辞职但开始小规模尝试，逐步过渡。', values: { achievement: 3, selfDirection: 2, security: 2, stimulation: 1, conformity: -1 } },
+                    { text: '想想这个梦想是否只关乎自己——如果它能帮助更多人，才值得冒险。', values: { universalism: 4, benevolence: 3, selfDirection: 1, hedonism: -2, security: -1 } }
+                ]
+            },
+            {
+                context: '场景五',
+                question: '你发现了一个被广泛接受的"常识"其实是错的。纠正它会得罪业内权威，而且大多数人可能不愿接受新说法。但真相就是真相。你会？',
+                choices: [
+                    { text: '公开挑战权威，无论代价如何。真相是最重要的东西。', values: { selfDirection: 4, stimulation: 3, universalism: 2, conformity: -4, power: -2, security: -2 } },
+                    { text: '先积累更多证据，找到一种不容易被反驳的表达方式，再谨慎公开。', values: { achievement: 3, security: 3, tradition: 1, selfDirection: 1, stimulation: -1 } },
+                    { text: '在自己的领域里默默按正确的方式做事，等待时机成熟再说。', values: { selfDirection: 3, tradition: 2, security: 2, conformity: 1, stimulation: -1 } },
+                    { text: '用讲故事的方式让大众自己领悟——直接说教不如启发思考有效。', values: { selfDirection: 3, stimulation: 2, benevolence: 2, tradition: 2, power: -2, conformity: -1 } }
+                ]
+            },
+            {
+                context: '场景六',
+                question: '深夜，你在街头遇到一个衣衫褴褛的陌生人。ta说自己身无分文、无处可去，请求你的帮助。你无法判断ta说的是真是假。你会？',
+                choices: [
+                    { text: '先带ta去吃顿饭、买些基本生活用品。即使被骗，也不过是几十块钱。', values: { benevolence: 4, universalism: 3, hedonism: -1, power: -2, security: -1 } },
+                    { text: '给ta一些钱，但保持距离。帮一把可以，但不能让自己陷入风险。', values: { benevolence: 2, universalism: 2, security: 2, selfDirection: 1, power: -1 } },
+                    { text: '帮ta联系当地的救助机构或社工。专业的事交给专业的人。', values: { universalism: 4, achievement: 2, security: 1, conformity: 1, benevolence: 1 } },
+                    { text: '保持警惕，礼貌拒绝。社会问题应该通过制度解决，而非个人善心。', values: { universalism: 2, security: 3, conformity: 2, tradition: 1, benevolence: -2 } }
+                ]
+            },
+            {
+                context: '场景七',
+                question: '你突然获得了一大笔意外之财（比如中彩票或遗产），足以让你不再工作也能舒适地度过余生。你会怎么规划这笔钱？',
+                choices: [
+                    { text: '用它来追求自己一直想做但没钱做的事——写作、旅行、创业。', values: { selfDirection: 4, stimulation: 3, hedonism: 3, achievement: 2, conformity: -2, security: -1 } },
+                    { text: '大部分存起来或投资，确保长期财务安全。适当改善生活就好。', values: { security: 4, conformity: 2, tradition: 2, achievement: 1, hedonism: -1, stimulation: -2 } },
+                    { text: '设立一个基金或项目，用来帮助某个你关心的社会问题。', values: { universalism: 4, benevolence: 4, achievement: 2, power: -1, hedonism: -2 } },
+                    { text: '和家人朋友分享，让身边的人也受益。同时留一部分给自己的爱好。', values: { benevolence: 3, tradition: 3, hedonism: 2, security: 1, selfDirection: -1 } }
+                ]
+            },
+            {
+                context: '场景八',
+                question: '你已到暮年，回首一生，你希望后人如何评价你？你最希望被记住的是？',
+                choices: [
+                    { text: '一个始终忠于自己内心的人——无论外界如何，都没有妥协过。', values: { selfDirection: 4, stimulation: 2, tradition: -1, conformity: -3, power: -1 } },
+                    { text: '一个推动了世界变得更美好的人——哪怕只是一点点改变。', values: { universalism: 4, benevolence: 3, achievement: 2, hedonism: -2, power: -1 } },
+                    { text: '一个承担了责任、守护了家庭和传统的人。', values: { tradition: 4, benevolence: 3, conformity: 2, security: 2, stimulation: -2, selfDirection: -1 } },
+                    { text: '一个活得精彩的人——体验过世间万般滋味，此生无憾。', values: { hedonism: 4, stimulation: 4, selfDirection: 3, achievement: -1, conformity: -2, tradition: -2 } }
+                ]
+            }
+        ];
+
+        var currentScene = 0;
+        var userValues = {};
+        var shareDataUrl = '';
+        valueKeys.forEach(function(k) { userValues[k] = 40; });
+
+        function renderScene() {
+            var scene = scenes[currentScene];
+            var container = document.getElementById('scene-container');
+
+            document.getElementById('progress-fill').style.width = ((currentScene / scenes.length) * 100) + '%';
+            document.getElementById('progress-text').textContent = currentScene + ' / ' + scenes.length;
+
+            var choicesHtml = '';
+            scene.choices.forEach(function(c, i) {
+                choicesHtml += '<button class="scene-choice" data-idx="' + i + '">' + c.text + '</button>';
+            });
+
+            container.innerHTML = '<div class="scene-card">' +
+                '<div class="scene-context">' + scene.context + '</div>' +
+                '<div class="scene-question">' + scene.question + '</div>' +
+                '<div class="scene-choices">' + choicesHtml + '</div>' +
+                '<button class="next-btn" id="next-btn" disabled>继续</button>' +
+                '</div>';
+
+            container.querySelectorAll('.scene-choice').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    selectChoice(parseInt(this.getAttribute('data-idx'), 10));
+                });
+            });
+
+            document.getElementById('next-btn').addEventListener('click', function() {
+                nextScene();
+            });
+
+            selectedChoiceIdx = -1;
+        }
+
+        var selectedChoiceIdx = -1;
+
+        function selectChoice(idx) {
+            selectedChoiceIdx = idx;
+            document.querySelectorAll('.scene-choice').forEach(function(btn, i) {
+                btn.classList.toggle('selected', i === idx);
+            });
+            document.getElementById('next-btn').disabled = false;
+        }
+
+        function nextScene() {
+            if (selectedChoiceIdx === -1) return;
+
+            var choice = scenes[currentScene].choices[selectedChoiceIdx];
+            for (var key in choice.values) {
+                userValues[key] = Math.max(0, Math.min(100, userValues[key] + choice.values[key] * 12));
+            }
+
+            currentScene++;
+            selectedChoiceIdx = -1;
+
+            if (currentScene >= scenes.length) {
+                showResults();
+            } else {
+                renderScene();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('test-section').style.display = 'none';
+            document.getElementById('results-section').classList.add('active');
+
+            var similarities = [];
+            var MAX_DIST = 250;
+            for (var name in geniusProfiles) {
+                var profile = geniusProfiles[name];
+                var distSq = 0;
+                valueKeys.forEach(function(k) {
+                    var diff = userValues[k] - profile.values[k];
+                    distSq += diff * diff;
+                });
+                var distance = Math.sqrt(distSq);
+                var sim = Math.max(0, Math.min(100, Math.round((1 - distance / MAX_DIST) * 100)));
+                similarities.push({ name: profile.name, field: profile.field, similarity: sim, values: profile.values });
+            }
+            similarities.sort(function(a, b) { return b.similarity - a.similarity; });
+
+            document.getElementById('top-name').textContent = similarities[0].name;
+            document.getElementById('top-percent').textContent = similarities[0].similarity + '%';
+
+            var chartDom = document.getElementById('radar-chart');
+            var myChart = echarts.init(chartDom, null, { renderer: 'svg' });
+            var option = {
+                animation: false,
+                tooltip: { trigger: 'item' },
+                legend: {
+                    data: ['你的价值观（估算）', similarities[0].name],
+                    orient: 'vertical',
+                    right: 10,
+                    top: 'center',
+                    itemGap: 16,
+                    textStyle: { fontFamily: 'Noto Serif SC, serif', color: '#1a1a1a', fontSize: 13 }
+                },
+                radar: {
+                    indicator: valueLabels.map(function(l, i) { return { name: l, max: 100 }; }),
+                    shape: 'polygon',
+                    splitNumber: 4,
+                    center: ['42%', '50%'],
+                    radius: '62%',
+                    axisName: {
+                        color: '#8b7355',
+                        fontFamily: 'Noto Serif SC, serif',
+                        fontSize: 12
+                    },
+                    splitLine: { lineStyle: { color: 'rgba(139,115,85,0.2)' } },
+                    splitArea: { show: true, areaStyle: { color: ['rgba(245,240,232,0.5)', 'rgba(235,229,216,0.5)'] } },
+                    axisLine: { lineStyle: { color: 'rgba(139,115,85,0.3)' } }
+                },
+                series: [{
+                    type: 'radar',
+                    data: [
+                        {
+                            value: valueKeys.map(function(k) { return userValues[k]; }),
+                            name: '你的价值观（估算）',
+                            lineStyle: { color: '#c45c3e', width: 2.5 },
+                            areaStyle: { color: 'rgba(196,92,62,0.15)' },
+                            itemStyle: { color: '#c45c3e' },
+                            symbolSize: 5
+                        },
+                        {
+                            value: valueKeys.map(function(k) { return similarities[0].values[k]; }),
+                            name: similarities[0].name,
+                            lineStyle: { color: '#4a7c59', width: 2.5 },
+                            areaStyle: { color: 'rgba(74,124,89,0.12)' },
+                            itemStyle: { color: '#4a7c59' },
+                            symbolSize: 5
+                        }
+                    ]
+                }]
+            };
+            myChart.setOption(option);
+            window.addEventListener('resize', function() { myChart.resize(); });
+
+            var listEl = document.getElementById('match-list');
+            var PER_PAGE = 10;
+            var totalPages = Math.ceil(similarities.length / PER_PAGE);
+            var currentPage = 1;
+
+            function renderRankingPage(page) {
+                var start = (page - 1) * PER_PAGE;
+                var end = Math.min(start + PER_PAGE, similarities.length);
+                var pageItems = similarities.slice(start, end);
+                var html = '';
+                pageItems.forEach(function(s, i) {
+                    var rank = start + i + 1;
+                    var rankClass = rank <= 3 ? ' top3' : '';
+                    html += '<div class="match-item">' +
+                        '<div class="match-rank' + rankClass + '">' + rank + '</div>' +
+                        '<div class="match-info"><div class="match-name">' + s.name + '</div><div class="match-field">' + s.field + '</div></div>' +
+                        '<div class="match-bar"><div class="match-fill" style="width: ' + s.similarity + '%"></div></div>' +
+                        '<div class="match-percent">' + s.similarity + '%</div>' +
+                        '</div>';
+                });
+                return html;
+            }
+
+            function renderPagination(current) {
+                var html = '';
+                for (var p = 1; p <= totalPages; p++) {
+                    if (totalPages > 7) {
+                        if (p === 1 || p === totalPages || (p >= current - 1 && p <= current + 1)) {
+                            html += '<button class="page-number' + (p === current ? ' active' : '') + '" data-page="' + p + '">' + p + '</button>';
+                        } else if (p === current - 2 || p === current + 2) {
+                            html += '<span class="page-dot"></span>';
+                        }
+                    } else {
+                        html += '<button class="page-number' + (p === current ? ' active' : '') + '" data-page="' + p + '">' + p + '</button>';
+                    }
+                }
+                return html;
+            }
+
+            listEl.innerHTML = renderRankingPage(1) + '<div class="pagination" id="pagination">' + renderPagination(1) + '</div>';
+
+            // 使用事件委托，绑定在 match-list 父容器上，避免 innerHTML 替换后事件监听器丢失
+            listEl.addEventListener('click', function(e) {
+                var btn = e.target.closest('.page-number');
+                if (!btn) return;
+                var page = parseInt(btn.getAttribute('data-page'), 10);
+                if (page === currentPage) return;
+                currentPage = page;
+                listEl.innerHTML = renderRankingPage(page) + '<div class="pagination" id="pagination">' + renderPagination(page) + '</div>';
+            });
+        }
+
+        function generateShareImage(topName, topPercent, topValues) {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var W = 750;
+            var H = 1000;
+            canvas.width = W;
+            canvas.height = H;
+
+            // 背景 - 浅米色纸张色
+            var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+            bgGrad.addColorStop(0, '#faf6ee');
+            bgGrad.addColorStop(1, '#f0e8d8');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, W, H);
+
+            // 装饰性边框
+            ctx.strokeStyle = 'rgba(74, 124, 89, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(30, 30, W - 60, H - 60);
+
+            ctx.strokeStyle = 'rgba(74, 124, 89, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(45, 45, W - 90, H - 90);
+
+            // 标题
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = 'bold 36px "Noto Serif SC", "Songti SC", serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('决策相似度测试结果', W / 2, 130);
+
+            // 副标题
+            ctx.fillStyle = '#8b7355';
+            ctx.font = '18px "Noto Serif SC", serif';
+            ctx.fillText('你的价值观与哪位天才最共鸣？', W / 2, 170);
+
+            // 分隔线
+            ctx.strokeStyle = 'rgba(74, 124, 89, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(W / 2 - 80, 200);
+            ctx.lineTo(W / 2 + 80, 200);
+            ctx.stroke();
+
+            // 最匹配天才 - 名字
+            ctx.fillStyle = '#4a7c59';
+            ctx.font = 'bold 48px "Noto Serif SC", serif';
+            ctx.fillText(topName, W / 2, 280);
+
+            // 相似度百分比
+            ctx.fillStyle = '#c45c3e';
+            ctx.font = 'bold 96px "Noto Serif SC", serif';
+            ctx.fillText(topPercent + '%', W / 2, 380);
+
+            // 共鸣度标签
+            ctx.fillStyle = '#8b7355';
+            ctx.font = '20px "Noto Serif SC", serif';
+            ctx.fillText('价值观共鸣度', W / 2, 420);
+
+            // 雷达图
+            var cx = W / 2;
+            var cy = 630;
+            var radius = 150;
+            var numAxes = 10;
+
+            // 绘制背景网格
+            for (var ring = 1; ring <= 4; ring++) {
+                var r = radius * ring / 4;
+                ctx.beginPath();
+                for (var i = 0; i <= numAxes; i++) {
+                    var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+                    var x = cx + r * Math.cos(angle);
+                    var y = cy + r * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(139, 115, 85, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // 绘制轴线
+            for (var i = 0; i < numAxes; i++) {
+                var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+                var x = cx + radius * Math.cos(angle);
+                var y = cy + radius * Math.sin(angle);
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = 'rgba(139, 115, 85, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // 绘制用户价值观多边形
+            ctx.beginPath();
+            for (var i = 0; i < numAxes; i++) {
+                var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+                var val = userValues[valueKeys[i]] / 100;
+                var r = radius * val;
+                var x = cx + r * Math.cos(angle);
+                var y = cy + r * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(196, 92, 62, 0.2)';
+            ctx.fill();
+            ctx.strokeStyle = '#c45c3e';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // 绘制匹配天才价值观多边形
+            ctx.beginPath();
+            for (var i = 0; i < numAxes; i++) {
+                var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+                var val = topValues[valueKeys[i]] / 100;
+                var r = radius * val;
+                var x = cx + r * Math.cos(angle);
+                var y = cy + r * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(74, 124, 89, 0.15)';
+            ctx.fill();
+            ctx.strokeStyle = '#4a7c59';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // 绘制轴标签
+            ctx.fillStyle = '#8b7355';
+            ctx.font = '14px "Noto Serif SC", serif';
+            ctx.textAlign = 'center';
+            for (var i = 0; i < numAxes; i++) {
+                var angle = (Math.PI * 2 * i / numAxes) - Math.PI / 2;
+                var labelR = radius + 25;
+                var x = cx + labelR * Math.cos(angle);
+                var y = cy + labelR * Math.sin(angle) + 5;
+                ctx.fillText(valueLabels[i], x, y);
+            }
+
+            // 图例
+            var legendY = 830;
+            var legendStartX = W / 2 - 120;
+
+            // 你的价值观
+            ctx.fillStyle = '#c45c3e';
+            ctx.fillRect(legendStartX, legendY - 8, 20, 3);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = '14px "Noto Serif SC", serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('你的价值观（估算）', legendStartX + 30, legendY - 3);
+
+            // 匹配天才
+            ctx.fillStyle = '#4a7c59';
+            ctx.fillRect(legendStartX + 150, legendY - 8, 20, 3);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillText(topName, legendStartX + 180, legendY - 3);
+
+            // 底部文字
+            ctx.fillStyle = 'rgba(74, 124, 89, 0.6)';
+            ctx.font = '16px "Noto Serif SC", serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('天才的遗赠 / Gifts of Genius', W / 2, 920);
+
+            ctx.fillStyle = 'rgba(139, 115, 85, 0.5)';
+            ctx.font = '12px "Noto Serif SC", serif';
+            ctx.fillText('基于施瓦茨基本价值观理论（Schwartz Theory of Basic Values）', W / 2, 950);
+
+            return canvas.toDataURL('image/png');
+        }
+
+        function openShareModal() {
+            var topName = document.getElementById('top-name').textContent;
+            var topPercent = document.getElementById('top-percent').textContent.replace('%', '');
+            var profile = geniusProfiles[topName];
+            if (!profile) return;
+
+            shareDataUrl = generateShareImage(topName, topPercent, profile.values);
+            document.getElementById('share-modal-img').src = shareDataUrl;
+            document.getElementById('share-modal').classList.add('active');
+        }
+
+        function saveShareImage() {
+            if (!shareDataUrl) return;
+            var a = document.createElement('a');
+            a.href = shareDataUrl;
+            a.download = '决策测试结果.png';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function closeShareModal() {
+            document.getElementById('share-modal').classList.remove('active');
+        }
+
+        function restartTest() {
+            currentScene = 0;
+            selectedChoiceIdx = -1;
+            valueKeys.forEach(function(k) { userValues[k] = 40; });
+            document.getElementById('test-section').style.display = 'block';
+            document.getElementById('results-section').classList.remove('active');
+            renderScene();
+        }
+
+        document.getElementById('restart-btn').addEventListener('click', function() {
+            restartTest();
+        });
+
+        document.getElementById('share-btn').addEventListener('click', function() {
+            openShareModal();
+        });
+
+        document.getElementById('share-modal-close').addEventListener('click', function() {
+            closeShareModal();
+        });
+
+        document.getElementById('save-img-btn').addEventListener('click', function() {
+            saveShareImage();
+        });
+
+        document.getElementById('share-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeShareModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var shareModal = document.getElementById('share-modal');
+                if (shareModal && shareModal.classList.contains('active')) {
+                    shareModal.classList.remove('active');
+                }
+            }
+        });
+
+        renderScene();
+    </script>
+    <script src="_shared/js/animations.js"></script>
+</body>
+</html>

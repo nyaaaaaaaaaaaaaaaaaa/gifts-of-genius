@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自由空间 - 天才的遗赠 / Gifts of Genius</title>
+    <link rel="stylesheet" href="_shared/css/common.css">
+    <style>
+        body { padding-top: 60px; overflow-x: hidden; }
+
+        /* Freedom page: more transparent nav to blend with cosmos */
+        .nav {
+            background: rgba(245, 240, 232, 0.45);
+            backdrop-filter: blur(6px);
+        }
+
+        /* ========== 星空场景容器 ========== */
+        .cosmos-scene {
+            position: relative;
+            min-height: calc(100vh - 60px);
+            background: linear-gradient(180deg, #1a2535 0%, #1e2d40 40%, #25364d 100%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 场景底部星云 + 渐变过渡 */
+        .cosmos-scene::before {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 60%;
+            background:
+                linear-gradient(to top, #f5f0e8 0%, rgba(245, 240, 232, 0.85) 8%, rgba(245, 240, 232, 0.5) 18%, rgba(200, 195, 185, 0.15) 30%, transparent 45%),
+                radial-gradient(ellipse at 20% 85%, rgba(74, 124, 89, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 75% 80%, rgba(196, 165, 90, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 场景标题 */
+        .cosmos-header {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 2rem 2rem 0.5rem;
+        }
+        .cosmos-header h1 {
+            font-size: 1.6rem;
+            letter-spacing: 0.25em;
+            color: rgba(220, 215, 200, 0.85);
+            font-weight: 400;
+        }
+        .cosmos-header .subtitle {
+            font-size: 0.78rem;
+            color: rgba(196, 165, 90, 0.5);
+            letter-spacing: 0.12em;
+            margin-top: 0.4rem;
+        }
+        /* 左上角返回按钮 */
+        .scene-back-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 50;
+            background: rgba(30, 45, 64, 0.7);
+            border: 1px solid rgba(196, 165, 90, 0.25);
+            border-radius: 50%;
+            color: rgba(196, 165, 90, 0.9);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+            text-decoration: none;
+        }
+        .scene-back-btn:hover {
+            background: rgba(196, 165, 90, 0.15);
+            border-color: rgba(196, 165, 90, 0.5);
+        }
+
+        .cosmos-header-actions {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 20;
+        }
+        .header-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(196, 165, 90, 0.1);
+            border: 1px solid rgba(196, 165, 90, 0.2);
+            color: rgba(196, 165, 90, 0.7);
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            padding: 0;
+            line-height: 1;
+            text-decoration: none;
+        }
+        .header-action-btn:hover {
+            background: rgba(196, 165, 90, 0.2);
+            border-color: rgba(196, 165, 90, 0.4);
+            color: rgba(220, 210, 180, 0.95);
+            transform: scale(1.05);
+        }
+
+        /* 筛选标签栏 */
+        .cosmos-tags {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.8rem 2rem;
+        }
+        .cosmos-tag {
+            padding: 0.3rem 0.9rem;
+            border: 1px solid rgba(196, 165, 90, 0.2);
+            border-radius: 20px;
+            background: rgba(196, 165, 90, 0.06);
+            color: rgba(196, 165, 90, 0.65);
+            font-size: 0.72rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            letter-spacing: 0.08em;
+        }
+        .cosmos-tag:hover {
+            border-color: rgba(196, 165, 90, 0.5);
+            color: rgba(196, 165, 90, 0.9);
+            background: rgba(196, 165, 90, 0.12);
+        }
+        .cosmos-tag.active {
+            background: rgba(196, 165, 90, 0.2);
+            border-color: rgba(196, 165, 90, 0.6);
+            color: rgba(220, 210, 180, 0.95);
+            box-shadow: 0 0 12px rgba(196, 165, 90, 0.15);
+        }
+
+        /* 星空画布 */
+        .cosmos-field {
+            position: relative;
+            z-index: 5;
+            flex: 1;
+            min-height: 500px;
+        }
+
+        /* ========== 光点（可交互的星星） ========== */
+        .light-point {
+            position: absolute;
+            width: var(--size, 10px);
+            height: var(--size, 10px);
+            cursor: pointer;
+            transition: transform 0.3s;
+            z-index: 10;
+        }
+        .light-point svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .light-point:hover {
+            transform: scale(1.6);
+        }
+
+        /* 光点颜色分类 */
+        .light-point.tag-\u751F\u6B7B\u89C2 { --base-color: rgba(180, 140, 120, 0.8); --glow-color: rgba(180, 140, 120, 0.2); }
+        .light-point.tag-\u81EA\u7531 { --base-color: rgba(120, 200, 160, 0.8); --glow-color: rgba(120, 200, 160, 0.2); }
+        .light-point.tag-\u8BA4\u77E5 { --base-color: rgba(140, 170, 220, 0.8); --glow-color: rgba(140, 170, 220, 0.2); }
+        .light-point.tag-\u8D23\u4EFB { --base-color: rgba(220, 180, 100, 0.8); --glow-color: rgba(220, 180, 100, 0.2); }
+        .light-point.tag-\u9006\u5883 { --base-color: rgba(220, 120, 100, 0.8); --glow-color: rgba(220, 120, 100, 0.2); }
+        .light-point.tag-\u51B3\u7B56 { --base-color: rgba(180, 160, 220, 0.8); --glow-color: rgba(180, 160, 220, 0.2); }
+        .light-point.tag-\u5176\u4ED6 { --base-color: rgba(200, 200, 200, 0.7); --glow-color: rgba(200, 200, 200, 0.15); }
+        .light-point.tag-\u7528\u6237 { --base-color: rgba(196, 165, 90, 0.9); --glow-color: rgba(196, 165, 90, 0.25); }
+
+        /* 四角星颜色（用于 SVG fill） */
+        :root {
+            --star-\u751F\u6B7B\u89C2: rgba(200, 160, 140, 0.9);
+            --star-\u81EA\u7531: rgba(140, 220, 180, 0.9);
+            --star-\u8BA4\u77E5: rgba(160, 190, 240, 0.9);
+            --star-\u8D23\u4EFB: rgba(240, 200, 120, 0.9);
+            --star-\u9006\u5883: rgba(240, 140, 120, 0.9);
+            --star-\u51B3\u7B56: rgba(200, 180, 240, 0.9);
+            --star-\u5176\u4ED6: rgba(220, 220, 220, 0.85);
+            --star-\u7528\u6237: rgba(220, 185, 110, 0.95);
+        }
+
+        /* 光点呼吸动画（随机延迟） */
+        @keyframes breathe {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        .light-point.alive {
+            animation: breathe var(--dur, 3s) ease-in-out var(--delay, 0s) infinite;
+        }
+        .light-point.hidden {
+            opacity: 0 !important;
+            pointer-events: none;
+            transition: opacity 0.6s;
+            animation: none !important;
+        }
+
+        /* 背景装饰星（不可交互） — 十字闪烁星光 */
+        .bg-star {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+            background: rgba(220, 215, 200, 0.5);
+            border-radius: 50%;
+        }
+        .bg-star.bright {
+            background: rgba(240, 235, 210, 0.7);
+            box-shadow: 0 0 4px rgba(220, 215, 200, 0.3);
+        }
+        .bg-star.twinkle {
+            animation: starTwinkle var(--dur, 3s) ease-in-out infinite alternate;
+        }
+        @keyframes starTwinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        /* ========== 点击后的金句弹窗 ========== */
+        .quote-reveal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .quote-reveal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+        }
+        .quote-reveal-card {
+            position: relative;
+            width: 90%;
+            max-width: 520px;
+            background: linear-gradient(135deg, rgba(35, 50, 70, 0.98), rgba(40, 55, 75, 0.98));
+            border: 1px solid rgba(196, 165, 90, 0.2);
+            border-radius: 16px;
+            padding: 2.5rem 2rem 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(196, 165, 90, 0.05);
+            transform: scale(0.9);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s;
+        }
+        .quote-reveal-overlay.active .quote-reveal-card {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .quote-reveal-card::before {
+            content: '\201C';
+            position: absolute;
+            top: 0.8rem;
+            left: 1.5rem;
+            font-size: 4rem;
+            color: rgba(196, 165, 90, 0.12);
+            font-family: Georgia, serif;
+            line-height: 1;
+        }
+        .quote-reveal-text {
+            font-size: 1.15rem;
+            line-height: 2.1;
+            color: rgba(230, 225, 210, 0.92);
+            letter-spacing: 0.03em;
+            margin-bottom: 1.2rem;
+            position: relative;
+            z-index: 1;
+        }
+        .quote-reveal-source {
+            font-size: 0.82rem;
+            color: rgba(196, 165, 90, 0.55);
+            letter-spacing: 0.06em;
+            margin-bottom: 1rem;
+        }
+        .quote-reveal-tag {
+            display: inline-block;
+            font-size: 0.68rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            background: rgba(196, 165, 90, 0.12);
+            color: rgba(196, 165, 90, 0.7);
+            letter-spacing: 0.05em;
+        }
+        .quote-reveal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.2rem;
+            align-items: center;
+        }
+        .reveal-action-btn {
+            background: none;
+            border: 1px solid rgba(196, 165, 90, 0.2);
+            color: rgba(196, 165, 90, 0.65);
+            padding: 0.4rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .reveal-action-btn:hover {
+            border-color: rgba(196, 165, 90, 0.5);
+            color: rgba(196, 165, 90, 0.95);
+            background: rgba(196, 165, 90, 0.08);
+        }
+        .reveal-action-btn.liked {
+            color: rgba(220, 160, 120, 0.9);
+            border-color: rgba(220, 160, 120, 0.4);
+        }
+        .quote-reveal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1.2rem;
+            background: none;
+            border: 1px solid rgba(196, 165, 90, 0.15);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            color: rgba(196, 165, 90, 0.5);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            padding: 0;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quote-reveal-close:hover {
+            color: rgba(196, 165, 90, 0.9);
+            border-color: rgba(196, 165, 90, 0.4);
+            background: rgba(196, 165, 90, 0.1);
+        }
+        .reveal-delete-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: rgba(196, 165, 90, 0.3);
+            font-size: 0.72rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: color 0.2s;
+        }
+        .reveal-delete-btn:hover {
+            color: rgba(220, 120, 100, 0.8);
+        }
+
+        /* ========== 下方内容区 ========== */
+        .freedom-sections {
+            background: var(--paper, #f5f0e8);
+            padding-bottom: 4rem;
+        }
+        .freedom-section {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2.5rem 2rem 0;
+        }
+        .freedom-section-title {
+            font-size: 1.25rem;
+            letter-spacing: 0.15em;
+            color: var(--ink, #1a1a1a);
+            margin-bottom: 0.3rem;
+            position: relative;
+            padding-left: 1rem;
+        }
+        .freedom-section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.15em;
+            width: 4px;
+            height: 1.2em;
+            border-radius: 2px;
+        }
+        .freedom-section-title.accent-bamboo::before { background: var(--bamboo, #4a7c59); }
+        .freedom-section-title.accent-gold::before { background: #c4a55a; }
+        .freedom-section-title.accent-rose::before { background: #c47a5a; }
+        .freedom-section-subtitle {
+            font-size: 0.82rem;
+            color: var(--mist, #9e9a94);
+            margin-bottom: 1.5rem;
+            padding-left: 1rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* 添加话语区 */
+        .add-quote-box {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(139, 115, 85, 0.15);
+            border-radius: 12px;
+            padding: 1.8rem 1.5rem;
+        }
+        .add-quote-box textarea {
+            width: 100%;
+            min-height: 70px;
+            padding: 0.8rem 1rem;
+            border: 1.5px solid rgba(139, 115, 85, 0.2);
+            border-radius: 8px;
+            background: rgba(245, 240, 232, 0.5);
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--ink, #1a1a1a);
+            line-height: 1.8;
+            resize: vertical;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+        .add-quote-box textarea:focus {
+            outline: none;
+            border-color: var(--bamboo, #4a7c59);
+        }
+        .add-quote-box textarea::placeholder {
+            color: var(--mist-light, #c4bfb6);
+        }
+        .add-quote-row {
+            display: flex;
+            gap: 0.6rem;
+            margin-top: 0.8rem;
+        }
+        .add-quote-row select,
+        .add-quote-row input {
+            flex: 1;
+            padding: 0.55rem 0.8rem;
+            border: 1.5px solid rgba(139, 115, 85, 0.2);
+            border-radius: 8px;
+            background: rgba(245, 240, 232, 0.5);
+            font-family: inherit;
+            font-size: 0.85rem;
+            color: var(--ink, #1a1a1a);
+            transition: border-color 0.2s;
+        }
+        .add-quote-row select:focus,
+        .add-quote-row input:focus {
+            outline: none;
+            border-color: var(--bamboo, #4a7c59);
+        }
+        .add-quote-row input::placeholder {
+            color: var(--mist-light, #c4bfb6);
+        }
+        .add-quote-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .section-submit-btn {
+            padding: 0.6rem 1.8rem;
+            background: var(--bamboo, #4a7c59);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .section-submit-btn:hover {
+            background: var(--bamboo-light, #5d9a6e);
+        }
+        .section-submit-btn:active {
+            transform: scale(0.97);
+        }
+        .section-submit-btn:disabled {
+            background: var(--mist-light, #c4bfb6);
+            cursor: pointer;
+            transform: none;
+        }
+        .section-submit-btn.btn-disabled {
+            background: var(--mist-light, #c4bfb6) !important;
+            opacity: 0.6;
+            cursor: pointer;
+            transform: none;
+        }
+        .section-submit-btn.btn-gold {
+            background: #c4a55a;
+        }
+        .section-submit-btn.btn-gold:hover {
+            background: #d4b56a;
+        }
+        .section-submit-btn.btn-rose {
+            background: #c47a5a;
+        }
+        .section-submit-btn.btn-rose:hover {
+            background: #d48a6a;
+        }
+        .section-hint {
+            font-size: 0.75rem;
+            color: var(--mist, #9e9a94);
+        }
+
+        /* 选择列表 */
+        .choice-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 1.5rem;
+        }
+        .choice-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 1rem 1.2rem;
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px solid rgba(139, 115, 85, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .choice-item:hover {
+            border-color: rgba(139, 115, 85, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .choice-item.selected {
+            border-color: var(--bamboo, #4a7c59);
+            background: rgba(74, 124, 89, 0.06);
+        }
+        .choice-item.selected .choice-radio {
+            border-color: var(--bamboo, #4a7c59);
+            background: var(--bamboo, #4a7c59);
+        }
+        .choice-item.selected .choice-radio::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #fff;
+        }
+        .choice-radio {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid rgba(139, 115, 85, 0.3);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .choice-content { flex: 1; }
+        .choice-label {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--ink, #1a1a1a);
+            letter-spacing: 0.05em;
+        }
+        .choice-desc {
+            font-size: 0.8rem;
+            color: var(--mist, #9e9a94);
+            margin-top: 0.2rem;
+            line-height: 1.6;
+        }
+        .choice-vs {
+            font-size: 0.7rem;
+            color: var(--bamboo, #4a7c59);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            flex-shrink: 0;
+        }
+        .choice-plus {
+            font-size: 0.7rem;
+            color: #c4a55a;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            flex-shrink: 0;
+        }
+
+        /* 复选框样式 */
+        .choice-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(139, 115, 85, 0.3);
+            border-radius: 4px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .choice-item.selected .choice-checkbox {
+            border-color: var(--bamboo, #4a7c59);
+            background: var(--bamboo, #4a7c59);
+        }
+        .choice-item.selected .choice-checkbox::after {
+            content: '\2713';
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .choice-item.disabled {
+            opacity: 0.4;
+            cursor: pointer;
+        }
+
+        /* 双按钮行 */
+        .combo-btn-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .combo-btn-row .section-submit-btn {
+            flex: 1;
+            min-width: 140px;
+        }
+        .combo-btn-hint {
+            font-size: 0.75rem;
+            color: var(--mist, #9e9a94);
+            width: 100%;
+            margin-top: 0.3rem;
+        }
+
+        /* 对话展示区 */
+        .dialogue-display {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(139, 115, 85, 0.12);
+            border-radius: 12px;
+        }
+        .dialogue-display.active {
+            display: block;
+        }
+        .dialogue-display-title {
+            font-size: 0.75rem;
+            color: var(--bamboo, #4a7c59);
+            letter-spacing: 0.12em;
+            margin-bottom: 1rem;
+        }
+        .dialogue-msg-block {
+            margin-bottom: 1rem;
+        }
+        .dialogue-msg-block:last-child {
+            margin-bottom: 0;
+        }
+        .dialogue-speaker {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--bamboo, #4a7c59);
+            margin-bottom: 0.2rem;
+        }
+        .dialogue-speaker.speaker-b {
+            color: #c4a55a;
+        }
+        .dialogue-text {
+            font-size: 0.9rem;
+            color: var(--ink, #1a1a1a);
+            line-height: 1.9;
+            padding-left: 0.5rem;
+            border-left: 2px solid rgba(74, 124, 89, 0.2);
+        }
+        .dialogue-speaker.speaker-b + .dialogue-text {
+            border-left-color: rgba(196, 165, 90, 0.3);
+        }
+
+        /* 组合展示区 */
+        .combo-display {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(139, 115, 85, 0.12);
+            border-radius: 12px;
+        }
+        .combo-display.active {
+            display: block;
+        }
+        .combo-display-title {
+            font-size: 0.75rem;
+            color: #c4a55a;
+            letter-spacing: 0.12em;
+            margin-bottom: 1rem;
+        }
+        .combo-display-text {
+            font-size: 0.92rem;
+            color: var(--ink, #1a1a1a);
+            line-height: 2;
+        }
+
+        /* 分隔线 */
+        .section-divider {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 2rem 0;
+        }
+        .section-divider hr {
+            border: none;
+            height: 1px;
+            background: rgba(139, 115, 85, 0.12);
+        }
+
+        /* ========== Toast ========== */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(40, 50, 70, 0.95);
+            color: rgba(220, 215, 200, 0.85);
+            padding: 0.6rem 1.3rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            letter-spacing: 0.05em;
+            border: 1px solid rgba(196, 165, 90, 0.15);
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 5000;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ========== 收藏面板（居中modal） ========== */
+        .fav-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .fav-modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+        }
+        .fav-modal {
+            position: relative;
+            width: 90%;
+            max-width: 520px;
+            max-height: 80vh;
+            background: linear-gradient(135deg, rgba(35, 50, 70, 0.98), rgba(40, 55, 75, 0.98));
+            border: 1px solid rgba(196, 165, 90, 0.2);
+            border-radius: 16px;
+            padding: 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(196, 165, 90, 0.05);
+            transform: scale(0.9);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s;
+            display: flex;
+            flex-direction: column;
+        }
+        .fav-modal-overlay.active .fav-modal {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .fav-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem 1.5rem 1rem;
+            border-bottom: 1px solid rgba(196, 165, 90, 0.12);
+        }
+        .fav-modal-header h2 {
+            font-size: 1rem;
+            letter-spacing: 0.2em;
+            color: rgba(196, 165, 90, 0.85);
+        }
+        .fav-modal-close {
+            background: none;
+            border: 1px solid rgba(196, 165, 90, 0.2);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: rgba(196, 165, 90, 0.5);
+            transition: all 0.3s;
+            padding: 0;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fav-modal-close:hover {
+            color: rgba(196, 165, 90, 0.9);
+            border-color: rgba(196, 165, 90, 0.4);
+            background: rgba(196, 165, 90, 0.1);
+        }
+        .fav-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.6rem 0;
+        }
+        .fav-item {
+            padding: 0.85rem 1.5rem;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .fav-item:hover {
+            background: rgba(196, 165, 90, 0.06);
+            border-left-color: rgba(196, 165, 90, 0.4);
+        }
+        .fav-item-text {
+            font-size: 0.9rem;
+            color: rgba(230, 225, 210, 0.9);
+            line-height: 1.7;
+            margin-bottom: 0.4rem;
+        }
+        .fav-item-meta {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .fav-item-source {
+            font-size: 0.75rem;
+            color: rgba(196, 165, 90, 0.45);
+        }
+        .fav-item-tag {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            background: rgba(196, 165, 90, 0.12);
+            color: rgba(196, 165, 90, 0.7);
+        }
+        .fav-empty {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: rgba(196, 165, 90, 0.35);
+            font-size: 0.85rem;
+        }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 768px) {
+            .cosmos-header h1 { font-size: 1.2rem; }
+            .cosmos-tags { gap: 0.4rem; padding: 0.6rem 1rem; }
+            .cosmos-tag { font-size: 0.65rem; padding: 0.25rem 0.7rem; }
+            .quote-reveal-card { padding: 2rem 1.5rem 1.5rem; }
+            .quote-reveal-text { font-size: 1rem; }
+            .freedom-section { padding: 2rem 1.2rem 0; }
+            .add-quote-row { flex-direction: column; }
+            .fav-modal {
+                max-width: 95%;
+            }
+            .cosmos-header-actions {
+                top: 0.6rem;
+                right: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="index.html" class="nav-brand">天才的遗赠 <small>Gifts of Genius</small></a>
+        <div class="nav-links">
+            <a href="index.html">首页</a>
+            <a href="explore.html" class="active">探索</a>
+            <a href="dialogue.html">对话</a>
+            <a href="decision.html">决策测试</a>
+        </div>
+    </nav>
+
+    <!-- 星空场景 -->
+    <div class="cosmos-scene">
+        <a href="explore.html" class="scene-back-btn" title="返回探索">&#8592;</a>
+        <div class="cosmos-header">
+            <div class="cosmos-header-actions">
+                <button class="header-action-btn" id="favPanelBtn" title="我的收藏">&#9733;</button>
+            </div>
+            <h1>自由空间</h1>
+            <p class="subtitle">点亮一颗星，收获一句智慧</p>
+        </div>
+
+        <div class="cosmos-tags" id="cosmosTags"></div>
+
+        <div class="cosmos-field" id="cosmosField">
+            <!-- 光点由JS生成 -->
+        </div>
+    </div>
+
+    <!-- 收藏面板（居中modal） -->
+    <div class="fav-modal-overlay" id="favOverlay">
+        <div class="fav-modal">
+            <div class="fav-modal-header">
+                <h2>我的收藏</h2>
+                <button class="fav-modal-close" id="favPanelClose">&times;</button>
+            </div>
+            <div class="fav-list" id="favList"></div>
+        </div>
+    </div>
+
+    <!-- 金句弹窗 -->
+    <div class="quote-reveal-overlay" id="quoteRevealOverlay">
+        <div class="quote-reveal-card">
+            <button class="quote-reveal-close" id="quoteRevealClose">&times;</button>
+            <div class="quote-reveal-text" id="revealText"></div>
+            <div class="quote-reveal-source" id="revealSource"></div>
+            <div class="quote-reveal-tag" id="revealTag"></div>
+            <div class="quote-reveal-actions">
+                <button class="reveal-action-btn" id="revealLikeBtn">
+                    <span id="revealLikeIcon">&#9825;</span>
+                    <span id="revealLikeCount">0</span>
+                </button>
+                <button class="reveal-action-btn" id="revealFavBtn">
+                    <span id="revealFavIcon">&#9734;</span> 收藏
+                </button>
+                <button class="reveal-delete-btn" id="revealDeleteBtn" style="display:none">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 下方内容区 -->
+    <div class="freedom-sections">
+
+        <!-- 添加话语 -->
+        <div class="freedom-section">
+            <h2 class="freedom-section-title accent-bamboo">添加你的话语</h2>
+            <p class="freedom-section-subtitle">写下触动你的句子，它会化作一颗新星出现在星空</p>
+            <div class="add-quote-box">
+                <textarea id="addQuoteText" placeholder="写下你想说的话......"></textarea>
+                <div class="add-quote-row">
+                    <select id="addQuoteTag">
+                        <option value="生死观">生死观</option>
+                        <option value="自由">自由</option>
+                        <option value="认知">认知</option>
+                        <option value="责任">责任</option>
+                        <option value="逆境">逆境</option>
+                        <option value="决策">决策</option>
+                        <option value="其他">其他</option>
+                    </select>
+                    <input id="addQuoteSource" placeholder="出处（可选）">
+                </div>
+                <div class="add-quote-actions">
+                    <button class="section-submit-btn" id="addSubmitBtn">点亮星辰</button>
+                    <span class="section-hint">保存在本地，刷新不丢失</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-divider"><hr></div>
+
+        <!-- 跨时空对话 / 跨学科组合 -->
+        <div class="freedom-section">
+            <h2 class="freedom-section-title accent-gold">跨时空对话 / 跨学科组合</h2>
+            <p class="freedom-section-subtitle">选择两位天才（最多2位），开启思想碰撞或发现学科共鸣（如庄子+薛定谔、维特根斯坦+马克思）</p>
+            <div class="choice-list" id="geniusChecklist"></div>
+            <div class="combo-btn-row">
+                <button class="section-submit-btn btn-gold btn-disabled" id="dialogueBtn">跨时空对话</button>
+                <button class="section-submit-btn btn-rose btn-disabled" id="comboBtn">跨学科组合</button>
+                <div class="combo-btn-hint" id="comboBtnHint">请选择2位天才</div>
+            </div>
+            <div class="dialogue-display" id="dialogueDisplay">
+                <div class="dialogue-display-title" id="dialogueDisplayTitle"></div>
+                <div id="dialogueDisplayBody"></div>
+            </div>
+            <div class="combo-display" id="comboDisplay">
+                <div class="combo-display-title" id="comboDisplayTitle"></div>
+                <div class="combo-display-text" id="comboDisplayBody"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== 金句数据 ====================
+        var defaultQuotes = [
+            { id: 'q1', text: '\u201C人固有死，或重于泰山，或轻于鸿毛。\u201D', source: '司马迁《报任安书》', tag: '生死观', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q2', text: '\u201C生当作人杰，死亦为鬼雄。\u201D', source: '李清照《夏日绝句》', tag: '生死观', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q3', text: '\u201C不自由，毋宁死。\u201D', source: '帕特里克·亨利', tag: '自由', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q4', text: '\u201C未经审视的人生不值得过。\u201D', source: '苏格拉底', tag: '认知', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q5', text: '\u201C人生而自由的，却无往不在枷锁之中。\u201D', source: '卢梭《社会契约论》', tag: '自由', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q6', text: '\u201C吾生也有涯，而知也无涯。\u201D', source: '庄子《养生主》', tag: '认知', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q7', text: '\u201C天下兴亡，匹夫有责。\u201D', source: '顾炎武', tag: '责任', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q8', text: '\u201C我思故我在。\u201D', source: '笛卡尔', tag: '认知', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q10', text: '\u201C凡是不能杀死你的，终将使你更强大。\u201D', source: '尼采', tag: '逆境', likes: 0, liked: false, fav: false, isUser: false },
+            { id: 'q11', text: '\u201C大家都知道，物质财富是可以继承的，精神财富也同样。\u201D', source: '《天才的遗赠》作者 行愿', tag: '其他', likes: 0, liked: false, fav: false, isUser: false, isEasterEgg: true }
+        ];
+
+        // ==================== 状态 ====================
+        var activeTag = 'all';
+        var allQuotes = [];
+        var currentRevealId = null;
+        var quotesKey = 'gifts_of_genius_user_quotes';
+        var likesKey = 'gifts_of_genius_quote_likes';
+
+        function loadState() {
+            try {
+                var userQuotes = JSON.parse(localStorage.getItem(quotesKey) || '[]');
+                var likes = JSON.parse(localStorage.getItem(likesKey) || '{}');
+                return { userQuotes: userQuotes, likes: likes };
+            } catch (e) {
+                return { userQuotes: [], likes: {} };
+            }
+        }
+        function saveLikes(likes) {
+            try { localStorage.setItem(likesKey, JSON.stringify(likes)); } catch (e) {}
+        }
+        function saveUserQuotes(quotes) {
+            try { localStorage.setItem(quotesKey, JSON.stringify(quotes)); } catch (e) {}
+        }
+
+        // ==================== 初始化 ====================
+        function init() {
+            var state = loadState();
+            allQuotes = defaultQuotes.map(function(q) {
+                return {
+                    id: q.id, text: q.text, source: q.source, tag: q.tag,
+                    likes: (state.likes[q.id] && state.likes[q.id].count) || 0,
+                    liked: (state.likes[q.id] && state.likes[q.id].liked) || false,
+                    fav: (state.likes[q.id] && state.likes[q.id].fav) || false,
+                    isUser: false,
+                    isEasterEgg: q.isEasterEgg || false
+                };
+            });
+            state.userQuotes.forEach(function(uq) {
+                allQuotes.push({
+                    id: uq.id, text: uq.text, source: uq.source, tag: uq.tag,
+                    likes: (state.likes[uq.id] && state.likes[uq.id].count) || 0,
+                    liked: (state.likes[uq.id] && state.likes[uq.id].liked) || false,
+                    fav: (state.likes[uq.id] && state.likes[uq.id].fav) || false,
+                    isUser: true
+                });
+            });
+            renderTags();
+            renderField();
+        }
+
+        // ==================== 筛选标签 ====================
+        function renderTags() {
+            var tags = ['all'];
+            allQuotes.forEach(function(q) {
+                if (tags.indexOf(q.tag) === -1) tags.push(q.tag);
+            });
+            var container = document.getElementById('cosmosTags');
+            container.innerHTML = '';
+            tags.forEach(function(tag) {
+                var btn = document.createElement('button');
+                btn.className = 'cosmos-tag' + (tag === activeTag ? ' active' : '');
+                btn.textContent = tag === 'all' ? '全部' : tag;
+                btn.setAttribute('data-tag', tag);
+                btn.addEventListener('click', function() {
+                    activeTag = tag;
+                    document.querySelectorAll('.cosmos-tag').forEach(function(b) {
+                        b.classList.toggle('active', b.getAttribute('data-tag') === tag);
+                    });
+                    filterPoints();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        // ==================== 渲染星空 ====================
+        function renderField() {
+            var field = document.getElementById('cosmosField');
+            // 先清除旧的光点（保留背景星）
+            field.querySelectorAll('.light-point').forEach(function(el) { el.remove(); });
+
+            // 渲染背景装饰星
+            var existingBg = field.querySelectorAll('.bg-star').length;
+            if (existingBg < 80) {
+                for (var i = existingBg; i < 80; i++) {
+                    var isBright = Math.random() > 0.7;
+                    var isTwinkle = Math.random() > 0.5;
+                    var star = document.createElement('div');
+                    star.className = 'bg-star' + (isBright ? ' bright' : '') + (isTwinkle ? ' twinkle' : '');
+                    star.style.top = (Math.random() * 100) + '%';
+                    star.style.left = (Math.random() * 100) + '%';
+                    star.style.opacity = (0.2 + Math.random() * 0.6);
+                    if (isBright) {
+                        star.style.width = '3px';
+                        star.style.height = '3px';
+                    } else {
+                        star.style.width = (1 + Math.random()) + 'px';
+                        star.style.height = star.style.width;
+                    }
+                    if (isTwinkle) {
+                        star.style.setProperty('--dur', (2 + Math.random() * 4) + 's');
+                        star.style.animationDelay = (Math.random() * 3) + 's';
+                    }
+                    field.appendChild(star);
+                }
+            }
+
+            // 渲染金句光点（四角星）
+            allQuotes.forEach(function(q, idx) {
+                var point = document.createElement('div');
+                var tagClass = q.isUser ? '用户' : q.tag;
+                point.className = 'light-point alive tag-' + tagClass + (activeTag !== 'all' && q.tag !== activeTag ? ' hidden' : '');
+                point.setAttribute('data-id', q.id);
+
+                // 随机大小和位置（用黄金角螺旋分布，避免完全重叠）
+                var size = q.isUser ? (10 + Math.random() * 4) : (8 + Math.random() * 6);
+                var angle = idx * 2.399963; // golden angle in radians
+                var radius = 12 + Math.sqrt(idx) * 8; // spiral outward
+                var cx = 50 + radius * Math.cos(angle);
+                var cy = 50 + radius * Math.sin(angle);
+
+                // 保持在可见区域
+                cx = Math.max(5, Math.min(92, cx));
+                cy = Math.max(5, Math.min(92, cy));
+
+                // 加一些随机偏移
+                cx += (Math.random() - 0.5) * 8;
+                cy += (Math.random() - 0.5) * 8;
+                cx = Math.max(3, Math.min(95, cx));
+                cy = Math.max(3, Math.min(95, cy));
+
+                point.style.left = cx + '%';
+                point.style.top = cy + '%';
+                point.style.setProperty('--size', size + 'px');
+                point.style.setProperty('--dur', (2.5 + Math.random() * 3.5) + 's');
+                point.style.setProperty('--delay', (Math.random() * 4) + 's');
+
+                // 四角星 SVG，颜色按分类
+                var starColor = getComputedStyle(document.documentElement).getPropertyValue('--star-' + (q.isUser ? 'user' : tagClass)) || 'rgba(240,235,210,0.9)';
+                point.innerHTML = '<svg viewBox="0 0 12 12"><path d="M6,0 L7.2,4.2 L12,6 L7.2,7.8 L6,12 L4.8,7.8 L0,6 L4.8,4.2 Z" fill="' + starColor.trim() + '"/></svg>';
+
+                point.title = '\u70B9\u51FB\u67E5\u770B'; // tooltip
+
+                point.addEventListener('click', function() {
+                    openReveal(q.id);
+                });
+
+                field.appendChild(point);
+            });
+        }
+
+        // ==================== 筛选 ====================
+        function filterPoints() {
+            document.querySelectorAll('.light-point').forEach(function(el) {
+                var id = el.getAttribute('data-id');
+                var q = allQuotes.find(function(q) { return q.id === id; });
+                if (!q) return;
+                if (activeTag !== 'all' && q.tag !== activeTag) {
+                    el.classList.add('hidden');
+                } else {
+                    el.classList.remove('hidden');
+                }
+            });
+        }
+
+        // ==================== 打开金句弹窗 ====================
+        function openReveal(id) {
+            var q = allQuotes.find(function(q) { return q.id === id; });
+            if (!q) return;
+            currentRevealId = id;
+
+            document.getElementById('revealText').textContent = q.text;
+            document.getElementById('revealSource').textContent = '\u2014\u2014 ' + q.source;
+            document.getElementById('revealTag').textContent = q.isEasterEgg ? '\u5176\u4ED6' : (q.isUser ? '\u6211\u7684\u8BDD\u8BED' : q.tag);
+
+            if (q.isEasterEgg) {
+                showToast('\u{1F38A} \u8FD9\u662F\u4E00\u4E2A\u5F69\u86CB~');
+            }
+            document.getElementById('revealLikeIcon').innerHTML = q.liked ? '&#9829;' : '&#9825;';
+            document.getElementById('revealLikeCount').textContent = q.likes;
+            document.getElementById('revealFavIcon').innerHTML = q.fav ? '&#9733;' : '&#9734;';
+            document.getElementById('revealDeleteBtn').style.display = q.isUser ? 'block' : 'none';
+
+            var overlay = document.getElementById('quoteRevealOverlay');
+            overlay.classList.add('active');
+        }
+
+        function closeReveal() {
+            document.getElementById('quoteRevealOverlay').classList.remove('active');
+            currentRevealId = null;
+        }
+
+        document.getElementById('quoteRevealClose').addEventListener('click', closeReveal);
+        document.getElementById('quoteRevealOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeReveal();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeReveal();
+            }
+        });
+
+        // ==================== 弹窗内按钮 ====================
+        document.getElementById('revealLikeBtn').addEventListener('click', function() {
+            if (!currentRevealId) return;
+            var q = allQuotes.find(function(q) { return q.id === currentRevealId; });
+            if (!q) return;
+            if (q.liked) {
+                q.liked = false;
+                q.likes = Math.max(0, q.likes - 1);
+            } else {
+                q.liked = true;
+                q.likes += 1;
+            }
+            var state = loadState();
+            if (!state.likes[q.id]) state.likes[q.id] = {};
+            state.likes[q.id].liked = q.liked;
+            state.likes[q.id].count = q.likes;
+            state.likes[q.id].fav = q.fav;
+            saveLikes(state.likes);
+            document.getElementById('revealLikeIcon').innerHTML = q.liked ? '&#9829;' : '&#9825;';
+            document.getElementById('revealLikeCount').textContent = q.likes;
+            this.classList.toggle('liked', q.liked);
+        });
+
+        document.getElementById('revealFavBtn').addEventListener('click', function() {
+            if (!currentRevealId) return;
+            var q = allQuotes.find(function(q) { return q.id === currentRevealId; });
+            if (!q) return;
+            q.fav = !q.fav;
+            var state = loadState();
+            if (!state.likes[q.id]) state.likes[q.id] = {};
+            state.likes[q.id].fav = q.fav;
+            saveLikes(state.likes);
+            document.getElementById('revealFavIcon').innerHTML = q.fav ? '&#9733;' : '&#9734;';
+            showToast(q.fav ? '\u5DF2\u6536\u85CF' : '\u5DF2\u53D6\u6D88\u6536\u85CF');
+        });
+
+        document.getElementById('revealDeleteBtn').addEventListener('click', function() {
+            if (!currentRevealId) return;
+            var delId = currentRevealId;
+            allQuotes = allQuotes.filter(function(q) { return q.id !== delId; });
+            var uqState = loadState();
+            uqState.userQuotes = uqState.userQuotes.filter(function(uq) { return uq.id !== delId; });
+            saveUserQuotes(uqState.userQuotes);
+            closeReveal();
+            renderTags();
+            renderField();
+            showToast('\u5DF2\u5220\u9664');
+        });
+
+        // ==================== 添加话语逻辑 ====================
+        document.getElementById('addSubmitBtn').addEventListener('click', function() {
+            var textEl = document.getElementById('addQuoteText');
+            var sourceEl = document.getElementById('addQuoteSource');
+            var tagEl = document.getElementById('addQuoteTag');
+
+            var text = textEl.value.trim();
+            if (!text) {
+                showToast('\u8BF7\u5148\u5199\u4E0B\u4F60\u7684\u8BDD\u8BED');
+                return;
+            }
+
+            var source = sourceEl.value.trim() || '\u6211';
+            var tag = tagEl.value;
+            var id = 'uq_' + Date.now();
+
+            var newQuote = {
+                id: id,
+                text: '\u201C' + text + '\u201D',
+                source: source,
+                tag: tag,
+                likes: 0,
+                liked: false,
+                fav: false,
+                isUser: true
+            };
+
+            allQuotes.unshift(newQuote);
+
+            var uqState = loadState();
+            uqState.userQuotes.push({ id: id, text: newQuote.text, source: source, tag: tag });
+            saveUserQuotes(uqState.userQuotes);
+
+            textEl.value = '';
+            sourceEl.value = '';
+            activeTag = 'all';
+            renderTags();
+            renderField();
+            showToast('\u65B0\u661F\u8FB0\u5DF2\u70B9\u4EAE');
+        });
+
+        // ==================== 跨时空对话 / 跨学科组合 ====================
+        var geniusList = [
+            { id: 'zhuangzi', name: '庄子', field: '约公元前369年—约公元前286年 / 道家哲学' },
+            { id: 'schrodinger', name: '薛定谔', field: '1887年—1961年 / 量子物理学' },
+            { id: 'wittgenstein', name: '维特根斯坦', field: '1889年—1951年 / 语言哲学' },
+            { id: 'marx', name: '马克思', field: '1818年—1883年 / 政治经济学' }
+        ];
+
+        // 对话数据（key为排序后的两人id，用_连接）
+        var dialogueData = {
+            'schrodinger_zhuangzi': {
+                theme: '意识是单数的',
+                label: '庄子 \u2194 薛定谔',
+                messages: [
+                    { speaker: '\u859B\u5B9A\u8C14', speakerClass: 'b', text: '\u5728\u300A\u751F\u547D\u662F\u4EC0\u4E48\u300B\u7684\u6700\u540E\u4E00\u7AE0\uFF0C\u6211\u5199\u4E0B\u4E86\u4E00\u53E5\u8BA9\u5F88\u591A\u4EBA\u89C9\u5F97\u8352\u8BDE\u7684\u8BDD\uFF1A\u201C\u610F\u8BC6\u4ECE\u6765\u4E0D\u662F\u4EE5\u590D\u6570\u88AB\u7ECF\u5386\u7684\uFF0C\u53EA\u662F\u4EE5\u5355\u6570\u3002\u201D\u6211\u4E3B\u5F20\uFF0C\u6240\u6709\u4EBA\u7684\u610F\u8BC6\u5176\u5B9E\u662F\u540C\u4E00\u4E2A\u4E1C\u897F\u2014\u2014\u770B\u4F3C\u5F88\u591A\u4E2A\u201C\u6211\u201D\uFF0C\u4E0D\u8FC7\u662F\u540C\u4E00\u4E2A\u610F\u8BC6\u901A\u8FC7\u4E0D\u540C\u7684\u8EAB\u4F53\u5728\u4F53\u9A8C\u81EA\u5DF1\u3002' },
+                    { speaker: '\u5E84\u5B50', speakerClass: 'a', text: '\u6709\u610F\u601D\u3002\u6211\u5728\u300A\u9F50\u7269\u8BBA\u300B\u91CC\u8BF4\uFF1A\u201C\u5929\u5730\u4E0E\u6211\u5E76\u751F\uFF0C\u800C\u4E07\u7269\u4E0E\u6211\u4E3A\u4E00\u3002\u201D\u4F60\u8BF4\u201C\u610F\u8BC6\u662F\u5355\u6570\u7684\u201D\uFF0C\u6211\u8BF4\u201C\u4E07\u7269\u4E0E\u6211\u4E3A\u4E00\u201D\u2014\u2014\u6211\u4EEC\u597D\u50CF\u5728\u8BF4\u540C\u4E00\u4EF6\u4E8B\u3002' },
+                    { speaker: '\u859B\u5B9A\u8C14', speakerClass: 'b', text: '\u786E\u5B9E\u5982\u6B64\u3002\u6211\u5F53\u65F6\u751A\u81F3\u53CD\u5411\u601D\u8003\u4E86\u4E00\u4E2A\u95EE\u9898\uFF1A\u5982\u679C\u610F\u8BC6\u53EA\u6709\u4E00\u4E2A\uFF0C\u90A3\u4E3A\u4EC0\u4E48\u5B83\u4F1A\u89C9\u5F97\u81EA\u5DF1\u662F\u591A\u4E2A\uFF1F\u6211\u7684\u7B54\u6848\u662F\u2014\u2014\u8FD9\u5C31\u50CF\u4E00\u95F4\u955C\u5B50\u8DB3\u5E7F\uFF0C\u540C\u4E00\u5EA7\u5C71\u5CF0\u88AB\u4E0D\u540C\u89D2\u5EA6\u62D4\u6620\u51FA\u65E0\u6570\u4E2A\u5012\u5F71\u3002\u6BCF\u4E2A\u4EBA\u770B\u5230\u7684\u201C\u6211\u201D\uFF0C\u4E0D\u8FC7\u662F\u540C\u4E00\u4E2A\u610F\u8BC6\u4ECE\u4E0D\u540C\u7684\u8C37\u5730\u671B\u5411\u540C\u4E00\u5EA7\u5C71\u3002' },
+                    { speaker: '\u5E84\u5B50', speakerClass: 'a', text: '\u201C\u540C\u4E00\u5EA7\u5C71\u201D\u2026\u2026\u8FD9\u4E2A\u6BD4\u55BB\u5F88\u597D\u3002\u6211\u66FE\u8BF4\u201C\u5927\u5730\u4E0E\u6211\u5E76\u751F\u201D\uFF0C\u4F46\u5F88\u591A\u4EBA\u4EE5\u4E3A\u6211\u5728\u8BF4\u201C\u81EA\u7136\u4E0E\u6211\u4E00\u6837\u5B58\u5728\u201D\u2014\u2014\u4E0D\uFF0C\u6211\u8BF4\u7684\u662F\u201C\u81EA\u7136\u4E0E\u6211\u672C\u5C31\u4E0D\u662F\u4E24\u4EF6\u4E8B\u201D\u3002\u4E3B\u5BA2\u4E4B\u5206\u3001\u7269\u6211\u4E4B\u522B\uFF0C\u90FD\u662F\u4EBA\u4E3A\u5212\u51FA\u7684\u8FB9\u754C\u3002' },
+                    { speaker: '\u859B\u5B9A\u8C14', speakerClass: 'b', text: '\u8FD9\u6B63\u662F\u6211\u60F3\u8BF4\u7684\u3002\u6211\u5728\u91CF\u5B50\u529B\u5B66\u4E2D\u4E5F\u9047\u5230\u4E86\u7C7B\u4F3C\u7684\u4E8B\u60C5\u3002\u89C2\u5BDF\u8005\u548C\u88AB\u89C2\u5BDF\u8005\u7684\u754C\u9650\uFF0C\u5728\u5FAE\u89C2\u4E16\u754C\u91CC\u662F\u6A21\u7CCA\u7684\u2014\u2014\u4F60\u65E0\u6CD5\u5728\u4E0D\u5E72\u6270\u88AB\u89C2\u5BDF\u5BF9\u8C61\u7684\u60C5\u51B5\u4E0B\u89C2\u5BDF\u5B83\u3002\u4E3B\u4F53\u548C\u5BA2\u4F53\u5E76\u975E\u7EDD\u5BF9\u5206\u79BB\uFF0C\u5B83\u4EEC\u5728\u67D0\u79CD\u610F\u4E49\u4E0A\u662F\u4E00\u4E2A\u6574\u4F53\u3002' },
+                    { speaker: '\u5E84\u5B50', speakerClass: 'a', text: '\u6240\u4EE5\u4F60\u4E5F\u89C9\u5F97\uFF0C\u6240\u8C13\u7684\u201C\u6211\u201D\u53EF\u80FD\u53EA\u662F\u4E00\u79CD\u9519\u89C9\uFF1F' },
+                    { speaker: '\u859B\u5B9A\u8C14', speakerClass: 'b', text: '\u4E0D\u662F\u9519\u89C9\uFF0C\u662F\u5FC5\u7136\u7684\u751F\u7269\u5B66\u73B0\u8C61\u3002\u610F\u8BC6\u5FC5\u987B\u4E0E\u4E00\u4E2A\u6709\u9650\u7684\u8EAB\u4F53\u76F8\u8FDE\u63A5\u624D\u80FD\u5B58\u5728\uFF0C\u800C\u8EAB\u4F53\u662F\u591A\u4E2A\u7684\uFF0C\u6240\u4EE5\u610F\u8BC6\u4EA7\u751F\u4E86\u201C\u591A\u4E2A\u201D\u7684\u5E7B\u89C9\u3002\u4F46\u5982\u679C\u6211\u4EEC\u4ECE\u8FD9\u4E2A\u5E7B\u89C9\u4E2D\u9192\u6765\uFF0C\u5C31\u4F1A\u53D1\u73B0\u2014\u2014\u5728\u90A3\u4E2A\u6700\u6DF1\u5904\uFF0C\u6CA1\u6709\u4F60\u548C\u6211\u7684\u5206\u522B\uFF0C\u53EA\u6709\u4E00\u4E2A\u201C\u5728\u770B\u201D\u7684\u5B58\u5728\u3002' },
+                    { speaker: '\u5E84\u5B50', speakerClass: 'a', text: '\u201C\u5929\u5730\u4E0E\u6211\u5E76\u751F\uFF0C\u800C\u4E07\u7269\u4E0E\u6211\u4E3A\u4E00\u3002\u201D\u4E24\u5343\u5E74\u524D\u6211\u8BF4\u8FD9\u53E5\u8BDD\u65F6\uFF0C\u6CA1\u60F3\u5230\u4F1A\u6709\u4E00\u4E2A\u897F\u65B9\u7684\u7269\u7406\u5B66\u5BB6\uFF0C\u7528\u53E6\u4E00\u5957\u8BED\u8A00\u8BF4\u51FA\u4E86\u540C\u6837\u7684\u9053\u7406\u3002\u6709\u610F\u601D\u3002' },
+                    { speaker: '\u859B\u5B9A\u8C14', speakerClass: 'b', text: '\u4E5F\u8BB8\u771F\u7406\u53EA\u6709\u4E00\u4E2A\uFF0C\u901A\u5F80\u5B83\u7684\u8DEF\u6709\u65E0\u7A77\u591A\u3002\u4F60\u4ECE\u76F4\u89C9\u51FA\u53D1\uFF0C\u6211\u4ECE\u7269\u7406\u51FA\u53D1\uFF0C\u6211\u4EEC\u5374\u5728\u540C\u4E00\u4E2A\u5730\u65B9\u76F8\u9047\u4E86\u3002' }
+                ]
+            }
+        };
+
+        // 组合分析数据
+        var comboData = {
+            'marx_wittgenstein': {
+                theme: '\u5929\u624D\u4E4B\u4E3A\u8D23\u4EFB',
+                label: '\u7EF4\u7279\u6839\u65AF\u5766 \u2194 \u9A6C\u514B\u601D',
+                detail: '\u7EF4\u7279\u6839\u65AF\u5766\u7684\u4F20\u8BB0\u540D\u53EB\u300A\u5929\u624D\u4E4B\u4E3A\u8D23\u4EFB\u300B\u2014\u2014\u8FD9\u4E0D\u662F\u4E00\u53E5\u4FF8\u8BC9\uFF0C\u800C\u662F\u4ED6\u4E00\u751F\u7684\u5199\u7167\u3002\u51FA\u8EAB\u5DE5\u4E1A\u5DE8\u5BCC\u4E4B\u5BB6\uFF0C\u4ED6\u5374\u4E3B\u52A8\u6563\u5C3D\u5BB6\u4EA7\uFF0C\u653E\u5F03\u5DE5\u7A0B\u5E08\u7684\u5927\u597D\u524D\u9014\u53BB\u5251\u6865\u8BFB\u54F2\u5B66\uFF0C\u540E\u6765\u53C8\u4E3B\u52A8\u53BB\u4E61\u6751\u5F53\u5C0F\u5B66\u6559\u5E08\u3001\u53BB\u533B\u9662\u5F53\u62A4\u5DE5\u3002\u4E0D\u662F\u56E0\u4E3A\u4ED6\u4E0D\u80FD\uFF0C\u800C\u662F\u56E0\u4E3A\u4ED6\u8BA4\u4E3A\uFF1A\u5929\u624D\u662F\u4E00\u79CD\u4E49\u52A1\uFF0C\u800C\u975E\u7279\u6743\u3002\u201C\u5982\u679C\u6211\u4E0D\u505A\u54F2\u5B66\uFF0C\u5C31\u65E0\u6CD5\u6709\u5C0A\u4E25\u5730\u6D3B\u4E0B\u53BB\u3002\u201D\n\n\u9A6C\u514B\u601D\u4ECE\u53E6\u4E00\u4E2A\u89D2\u5EA6\u8D70\u5411\u4E86\u540C\u6837\u7684\u7ED3\u8BBA\u3002\u4ED6\u51FA\u8EAB\u4E2D\u4EA7\u9636\u7EA7\uFF0C\u672C\u53EF\u4EE5\u8FC7\u4E0A\u4F18\u8D8A\u7684\u751F\u6D3B\uFF0C\u5374\u9009\u62E9\u4E86\u4E00\u6761\u88AB\u6D41\u653E\u3001\u88AB\u8FEB\u5BB3\u3001\u88AB\u62D2\u7EDD\u7684\u9053\u8DEF\u3002\u201C\u54F2\u5B66\u5BB6\u4EEC\u53EA\u662F\u7528\u4E0D\u540C\u7684\u65B9\u5F0F\u89E3\u91CA\u4E16\u754C\uFF0C\u800C\u95EE\u9898\u662F\u6539\u53D8\u4E16\u754C\u3002\u201D\u8FD9\u53E5\u8BDD\u80CC\u540E\u7684\u611F\u89C9\u662F\uFF1A\u4ED6\u770B\u5230\u4E86\u793E\u4F1A\u7684\u75C5\u7076\uFF0C\u65E0\u6CD5\u5047\u88C5\u6CA1\u770B\u5230\uFF0C\u56E0\u6B64\u5FC5\u987B\u884C\u52A8\u3002\u4ED6\u7684\u5171\u4EA7\u4E3B\u4E49\u7406\u60F3\uFF0C\u4E0D\u662F\u7A7A\u4E2D\u69CB\u5EFA\u7684\u7406\u8BBA\uFF0C\u800C\u662F\u8FD9\u4EFD\u8D23\u4EFB\u611F\u7684\u4E00\u79CD\u6781\u81F4\u8868\u8FBE\u3002\n\n\u4E24\u4EBA\u7684\u5171\u9E23\u70B9\u5728\u4E8E\uFF1A\u5929\u624D\u4E0D\u662F\u7279\u6743\uFF0C\u4E5F\u4E0D\u662F\u67B7\u9501\uFF0C\u800C\u662F\u50CF\u8033\u6735\u66F4\u7075\u654F\u7684\u4EBA\uFF0C\u542C\u5230\u4E86\u66F4\u591A\u7684\u58F0\u97F3\uFF0C\u81EA\u7136\u5C31\u6709\u8D23\u4EFB\u628A\u8FD9\u4E9B\u58F0\u97F3\u544A\u8BC9\u5927\u5BB6\u3002\u7EF4\u7279\u6839\u65AF\u5766\u7528\u54F2\u5B66\u505A\u5230\u4E86\uFF0C\u9A6C\u514B\u601D\u7528\u9769\u547D\u505A\u5230\u4E86\u3002\u4E24\u4E2A\u4E0D\u540C\u65F6\u4EE3\u7684\u7075\u9B42\uFF0C\u7528\u5B8C\u5168\u4E0D\u540C\u7684\u65B9\u5F0F\uFF0C\u8BF4\u51FA\u4E86\u540C\u4E00\u4E2A\u9053\u7406\uFF1A\u5F97\u5230\u66F4\u591A\u7684\u4EBA\uFF0C\u4E0D\u662F\u88AB\u8D4B\u4E88\u4E86\u66F4\u591A\u7684\u6743\u5229\uFF0C\u800C\u662F\u627F\u62C5\u4E86\u66F4\u91CD\u7684\u4E49\u52A1\u3002'
+            }
+        };
+
+        var selectedGeniuses = [];
+
+        // 生成排序后的pair key
+        function getPairKey(ids) {
+            return ids.slice().sort().join('_');
+        }
+
+        function renderGeniusChecklist() {
+            var list = document.getElementById('geniusChecklist');
+            list.innerHTML = '';
+            var maxReached = selectedGeniuses.length >= 2;
+
+            geniusList.forEach(function(genius) {
+                var isSelected = selectedGeniuses.indexOf(genius.id) !== -1;
+                var isDisabled = maxReached && !isSelected;
+
+                var item = document.createElement('div');
+                item.className = 'choice-item' + (isSelected ? ' selected' : '') + (isDisabled ? ' disabled' : '');
+                item.setAttribute('data-id', genius.id);
+                item.innerHTML =
+                    '<div class="choice-checkbox"></div>' +
+                    '<div class="choice-content">' +
+                        '<div class="choice-label">' + genius.name + '</div>' +
+                        '<div class="choice-desc">' + genius.field + '</div>' +
+                    '</div>';
+                item.addEventListener('click', function() {
+                    if (this.classList.contains('disabled')) {
+                        showToast('开发中');
+                        return;
+                    }
+                    toggleGenius(genius.id);
+                });
+                list.appendChild(item);
+            });
+        }
+
+        function toggleGenius(id) {
+            var idx = selectedGeniuses.indexOf(id);
+            if (idx !== -1) {
+                // 取消选中
+                selectedGeniuses.splice(idx, 1);
+            } else {
+                // 选中
+                if (selectedGeniuses.length >= 2) {
+                    showToast('\u6700\u591A\u9009\u62E92\u4F4D\u5929\u624D');
+                    return;
+                }
+                selectedGeniuses.push(id);
+            }
+            renderGeniusChecklist();
+            updateComboButtons();
+            // 隐藏展示区
+            document.getElementById('dialogueDisplay').classList.remove('active');
+            document.getElementById('comboDisplay').classList.remove('active');
+        }
+
+        function updateComboButtons() {
+            var dialogueBtn = document.getElementById('dialogueBtn');
+            var comboBtn = document.getElementById('comboBtn');
+            var hint = document.getElementById('comboBtnHint');
+
+            if (selectedGeniuses.length === 0) {
+                dialogueBtn.classList.add('btn-disabled');
+                comboBtn.classList.add('btn-disabled');
+                hint.textContent = '';
+            } else if (selectedGeniuses.length === 1) {
+                dialogueBtn.classList.add('btn-disabled');
+                comboBtn.classList.add('btn-disabled');
+                hint.textContent = '';
+            } else {
+                // 选了2个
+                var pairKey = getPairKey(selectedGeniuses);
+                var hasDialogue = dialogueData.hasOwnProperty(pairKey);
+                var hasCombo = comboData.hasOwnProperty(pairKey);
+
+                if (hasDialogue) {
+                    dialogueBtn.classList.remove('btn-disabled');
+                } else {
+                    dialogueBtn.classList.add('btn-disabled');
+                }
+                if (hasCombo) {
+                    comboBtn.classList.remove('btn-disabled');
+                } else {
+                    comboBtn.classList.add('btn-disabled');
+                }
+                hint.textContent = '';
+            }
+        }
+
+        // 跨时空对话按钮
+        document.getElementById('dialogueBtn').addEventListener('click', function() {
+            if (this.classList.contains('btn-disabled')) {
+                showToast('\u5F00\u53D1\u4E2D');
+                return;
+            }
+            var pairKey = getPairKey(selectedGeniuses);
+            var topic = dialogueData[pairKey];
+            if (!topic) {
+                showToast('\u5F00\u53D1\u4E2D');
+                return;
+            }
+            document.getElementById('dialogueDisplayTitle').textContent = topic.theme + ' \u00B7 ' + topic.label;
+            var body = document.getElementById('dialogueDisplayBody');
+            var html = '';
+            topic.messages.forEach(function(m) {
+                html += '<div class="dialogue-msg-block">' +
+                    '<div class="dialogue-speaker speaker-' + m.speakerClass + '">' + m.speaker + '</div>' +
+                    '<div class="dialogue-text">' + m.text + '</div>' +
+                    '</div>';
+            });
+            body.innerHTML = html;
+            document.getElementById('dialogueDisplay').classList.add('active');
+            document.getElementById('comboDisplay').classList.remove('active');
+            document.getElementById('dialogueDisplay').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        // 跨学科组合按钮
+        document.getElementById('comboBtn').addEventListener('click', function() {
+            if (this.classList.contains('btn-disabled')) {
+                showToast('\u5F00\u53D1\u4E2D');
+                return;
+            }
+            var pairKey = getPairKey(selectedGeniuses);
+            var combo = comboData[pairKey];
+            if (!combo) {
+                showToast('\u5F00\u53D1\u4E2D');
+                return;
+            }
+            document.getElementById('comboDisplayTitle').textContent = combo.theme + ' \u00B7 ' + combo.label;
+            var detail = combo.detail.replace(/\n\n/g, '</p><p style="margin-top:1rem">');
+            document.getElementById('comboDisplayBody').innerHTML = '<p>' + detail + '</p>';
+            document.getElementById('comboDisplay').classList.add('active');
+            document.getElementById('dialogueDisplay').classList.remove('active');
+            document.getElementById('comboDisplay').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        // ==================== Toast ====================
+        function showToast(msg) {
+            var toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(function() {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // ==================== 收藏面板 ====================
+        function openFavPanel() {
+            document.getElementById('favOverlay').classList.add('active');
+            renderFavList();
+        }
+
+        function closeFavPanel() {
+            document.getElementById('favOverlay').classList.remove('active');
+        }
+
+        function renderFavList() {
+            var list = document.getElementById('favList');
+            var favQuotes = allQuotes.filter(function(q) { return q.fav; });
+
+            if (favQuotes.length === 0) {
+                list.innerHTML = '<div class="fav-empty">还没有收藏任何金句</div>';
+                return;
+            }
+
+            list.innerHTML = '';
+            favQuotes.forEach(function(q) {
+                var item = document.createElement('div');
+                item.className = 'fav-item';
+                item.innerHTML =
+                    '<div class="fav-item-text">' + q.text + '</div>' +
+                    '<div class="fav-item-meta">' +
+                        '<span class="fav-item-source">' + q.source + '</span>' +
+                        '<span class="fav-item-tag">' + (q.isUser ? '我的话语' : q.tag) + '</span>' +
+                    '</div>';
+                item.addEventListener('click', function() {
+                    closeFavPanel();
+                    setTimeout(function() { openReveal(q.id); }, 300);
+                });
+                list.appendChild(item);
+            });
+        }
+
+        document.getElementById('favPanelBtn').addEventListener('click', openFavPanel);
+        document.getElementById('favPanelClose').addEventListener('click', closeFavPanel);
+        document.getElementById('favOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeFavPanel();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.getElementById('favOverlay').classList.contains('active')) {
+                    closeFavPanel();
+                }
+            }
+        });
+
+        // ==================== 启动 ====================
+        init();
+        renderGeniusChecklist();
+        updateComboButtons();
+    </script>
+    <script src="_shared/js/animations.js"></script>
+</body>
+</html>
