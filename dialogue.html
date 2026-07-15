@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对话 - 天才的遗赠 / Gifts of Genius</title>
+    <link rel="stylesheet" href="_shared/css/common.css">
+    <style>
+        body { padding-top: 60px; }
+
+        /* === 页面整体布局 === */
+        .dialogue-page {
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 60px);
+            background: linear-gradient(180deg, #e6e0d2 0%, #ddd6c8 100%);
+        }
+
+        /* === 顶部时间线 === */
+        .dialogue-timeline {
+            padding: 1rem 2rem 0.5rem;
+            border-bottom: 1px solid rgba(139, 115, 85, 0.12);
+            background: rgba(255, 255, 255, 0.3);
+            position: relative;
+        }
+        .dialogue-timeline-label {
+            font-size: 0.7rem;
+            color: var(--mist);
+            letter-spacing: 0.15em;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        .timeline-track {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.3rem 0.5rem;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(139, 115, 85, 0.2) transparent;
+            justify-content: center;
+        }
+        .timeline-track::-webkit-scrollbar { height: 3px; }
+        .timeline-track::-webkit-scrollbar-track { background: transparent; }
+        .timeline-track::-webkit-scrollbar-thumb { background: rgba(139, 115, 85, 0.25); border-radius: 2px; }
+
+        .timeline-node {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: pointer;
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .timeline-node::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1.5px solid #c4a55a;
+            background: #c4a55a;
+            box-shadow: 0 0 6px rgba(196, 165, 90, 0.3);
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .timeline-node.active::before {
+            background: #d4b96a;
+            border-color: #d4b96a;
+            box-shadow: 0 0 10px rgba(212, 185, 106, 0.5);
+            width: 10px;
+            height: 10px;
+        }
+        .timeline-node:hover:not(.active):not(.disabled)::before {
+            border-color: #d4b96a;
+            background: #d4b96a;
+            box-shadow: 0 0 8px rgba(212, 185, 106, 0.4);
+        }
+        .timeline-year {
+            font-size: 0.65rem;
+            color: rgba(139, 115, 85, 0.4);
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            transition: color 0.3s;
+        }
+        .timeline-node.active .timeline-year { color: var(--bamboo); font-weight: 700; }
+        .timeline-title {
+            font-size: 0.7rem;
+            color: rgba(139, 115, 85, 0.55);
+            white-space: nowrap;
+            transition: color 0.3s;
+        }
+        .timeline-node.active .timeline-title { color: var(--ink); font-weight: 700; }
+
+        /* 无对话节点 - 空心淡色 */
+        .timeline-node.disabled {
+            opacity: 1;
+            cursor: pointer;
+        }
+        .timeline-node.disabled::before {
+            background: transparent;
+            border: 1.5px solid rgba(139, 115, 85, 0.4);
+            border-style: solid;
+            box-shadow: none;
+        }
+        .timeline-node.disabled:hover:not(.active)::before {
+            border-color: rgba(139, 115, 85, 0.65);
+            box-shadow: none;
+        }
+        /* === 右上角人物图鉴按钮 === */
+        .character-gallery-btn {
+            position: fixed;
+            top: 70px;
+            right: 1.5rem;
+            z-index: 100;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(139, 115, 85, 0.25);
+            color: #8b7355;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+        .character-gallery-btn:hover {
+            background: rgba(196, 165, 90, 0.15);
+            border-color: rgba(196, 165, 90, 0.4);
+            transform: scale(1.05);
+        }
+
+        /* === 人物图鉴面板（居中modal） === */
+        .character-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+        .character-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+        }
+        .character-panel {
+            position: relative;
+            width: 90%;
+            max-width: 520px;
+            max-height: 80vh;
+            background: linear-gradient(135deg, rgba(44, 44, 44, 0.98), rgba(50, 50, 55, 0.98));
+            border: 1px solid rgba(196, 165, 90, 0.15);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s;
+            display: flex;
+            flex-direction: column;
+        }
+        .character-overlay.active .character-panel {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .character-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem 1.2rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .character-panel-header h2 {
+            font-size: 1rem;
+            letter-spacing: 0.2em;
+            color: #c4bfb6;
+        }
+        .character-panel-close {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #9e9a94;
+            transition: all 0.3s;
+            padding: 0;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .character-panel-close:hover {
+            background: rgba(255,255,255,0.08);
+            color: #e0ddd6;
+            border-color: rgba(255,255,255,0.3);
+        }
+        .character-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.6rem 0;
+        }
+        .character-card {
+            padding: 0.85rem 1.2rem;
+            cursor: default;
+            border-left: 3px solid transparent;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        .character-card:hover {
+            background: rgba(255,255,255,0.04);
+        }
+        .character-card.active {
+            background: rgba(74, 124, 89, 0.15);
+            border-left-color: var(--bamboo-light);
+        }
+        .card-top {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.45rem;
+        }
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            object-fit: cover;
+            background: #4a4a4a;
+        }
+        .avatar-text {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f5f0e8;
+        }
+        .card-info { flex: 1; min-width: 0; }
+        .card-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f0ece4;
+            letter-spacing: 0.05em;
+        }
+        .card-field {
+            font-size: 0.72rem;
+            color: #8a8580;
+            margin-top: 0.1rem;
+        }
+        .card-desc {
+            font-size: 0.78rem;
+            color: #a09a92;
+            line-height: 1.6;
+            margin-bottom: 0.15rem;
+        }
+        .card-era {
+            font-size: 0.7rem;
+            color: #6b6762;
+            margin-bottom: 0.5rem;
+        }
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .like-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.8rem;
+            color: #9e9a94;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .like-btn:hover {
+            border-color: var(--accent-soft);
+            color: var(--accent-soft);
+        }
+        .like-btn.liked {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .like-btn .heart {
+            font-style: normal;
+        }
+        .enter-dialogue-btn {
+            background: rgba(74, 124, 89, 0.2);
+            border: 1px solid rgba(74, 124, 89, 0.3);
+            border-radius: 20px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.75rem;
+            color: #6b9e7c;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        .enter-dialogue-btn:hover {
+            background: rgba(74, 124, 89, 0.35);
+        }
+
+        /* === 对话区域 === */
+        .dialogue-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            transition: background-image 0.8s ease;
+        }
+        .dialogue-area::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(255,252,245,0.88) 0%, rgba(255,252,245,0.92) 50%, rgba(255,252,245,0.88) 100%);
+            z-index: 0;
+        }
+        .dialogue-area > * {
+            position: relative;
+            z-index: 1;
+        }
+        .dialogue-header {
+            text-align: center;
+            padding: 1.5rem 2rem 1rem;
+        }
+        .dialogue-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: var(--ink);
+        }
+        .dialogue-meta {
+            font-size: 0.82rem;
+            color: var(--mist);
+            margin-top: 0.4rem;
+            letter-spacing: 0.08em;
+        }
+
+        .dialogue-scene {
+            flex: 1;
+            display: flex;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 1rem 2rem 2rem;
+            gap: 2rem;
+            align-items: flex-end;
+        }
+
+        .zhuangzi-figure {
+            width: 300px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .zhuangzi-figure img {
+            width: 280px;
+            height: auto;
+            max-height: 420px;
+            object-fit: contain;
+            object-position: center bottom;
+        }
+        .figure-name {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            letter-spacing: 0.2em;
+            color: var(--mist);
+        }
+
+        .dialogue-panel {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 1.8rem;
+            border: 1px solid rgba(139, 115, 85, 0.12);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(6px);
+        }
+        .dialogue-history {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding-right: 0.5rem;
+        }
+        .dialogue-msg {
+            margin-bottom: 1.2rem;
+            animation: fadeInUp 0.4s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dialogue-msg.zhuangzi .msg-bubble {
+            background: rgba(74, 124, 89, 0.06);
+            border-left: 3px solid var(--bamboo);
+            padding: 1rem 1.2rem;
+            border-radius: 0 12px 12px 12px;
+        }
+        .dialogue-msg.user .msg-bubble {
+            background: rgba(196, 92, 62, 0.05);
+            border-right: 3px solid var(--accent-soft);
+            padding: 1rem 1.2rem;
+            border-radius: 12px 0 12px 12px;
+            text-align: right;
+        }
+        .dialogue-msg.system .msg-bubble {
+            background: rgba(139, 115, 85, 0.04);
+            border: 1px dashed rgba(139, 115, 85, 0.12);
+        }
+        .msg-bubble p {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--ink);
+        }
+        .msg-source {
+            font-size: 0.75rem;
+            color: var(--mist);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+        .dialogue-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        /* History toggle button - inside dialogue panel */
+        .history-toggle-btn {
+            position: absolute;
+            top: 0.8rem;
+            right: 0.8rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(139, 115, 85, 0.15);
+            color: var(--ink);
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            z-index: 10;
+            opacity: 0.5;
+        }
+        .history-toggle-btn:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        .history-toggle-btn.has-history {
+            opacity: 0.8;
+        }
+        .dialogue-panel {
+            position: relative;
+        }
+        /* When showing full history, dim old messages */
+        .dialogue-history.show-all .dialogue-msg {
+            opacity: 1;
+        }
+        .dialogue-history:not(.show-all) .dialogue-msg.prev-msg {
+            display: none;
+        }
+        .choice-btn {
+            padding: 1rem 1.2rem;
+            background: rgba(245, 240, 232, 0.9);
+            border: 1px solid rgba(139, 115, 85, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--ink);
+            transition: all 0.3s;
+            line-height: 1.6;
+        }
+        .choice-btn:hover {
+            background: rgba(74, 124, 89, 0.1);
+            border-color: var(--bamboo-light);
+            transform: translateX(4px);
+        }
+
+        @media (max-width: 900px) {
+            .dialogue-scene {
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .character-panel {
+                max-width: 95%;
+            }
+        }
+        @media (max-width: 600px) {
+            .dialogue-scene {
+                flex-direction: column;
+                align-items: center;
+                padding: 0.5rem 1rem 1rem;
+            }
+            .zhuangzi-figure {
+                width: 120px;
+                margin-bottom: 0.5rem;
+            }
+            .zhuangzi-figure img {
+                width: 120px;
+                height: auto;
+                max-height: 180px;
+            }
+            .dialogue-panel {
+                padding: 1.2rem;
+            }
+            .dialogue-timeline {
+                padding: 0.8rem 1rem 0.5rem;
+            }
+            .timeline-node {
+                padding: 0.3rem 0.6rem;
+            }
+            .timeline-title {
+                font-size: 0.65rem;
+            }
+            .character-gallery-btn {
+                top: 66px;
+                right: 1rem;
+                width: 36px;
+                height: 36px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="index.html" class="nav-brand">天才的遗赠 <small>Gifts of Genius</small></a>
+        <div class="nav-links">
+            <a href="index.html">首页</a>
+            <a href="explore.html">探索</a>
+            <a href="dialogue.html" class="active">对话</a>
+            <a href="decision.html">决策测试</a>
+        </div>
+    </nav>
+
+    <div class="dialogue-page">
+        <!-- 人物图鉴按钮 -->
+        <button class="character-gallery-btn" id="galleryBtn" title="人物图鉴">&#9783;</button>
+
+        <!-- 顶部时间线 -->
+        <div class="dialogue-timeline">
+            <div class="dialogue-timeline-label">人生节点 · 选择对话场景</div>
+            <div class="timeline-track" id="timelineTrack">
+                <!-- 由JS生成 -->
+            </div>
+        </div>
+
+        <!-- 对话区域 -->
+        <div class="dialogue-area" id="dialogueArea">
+            <div class="dialogue-header">
+                <div class="dialogue-title" id="dialogueTitle">拒聘楚相</div>
+                <div class="dialogue-meta" id="dialogueMeta">约公元前335年 · 濮水之畔 · 楚王遣使聘庄子为相</div>
+            </div>
+            <div class="dialogue-scene">
+                <div class="zhuangzi-figure">
+                    <img src="assets/portraits/zhuangzi_transparent.png" alt="庄子">
+                    <div class="figure-name">庄子</div>
+                </div>
+                <div class="dialogue-panel">
+                    <button class="history-toggle-btn" id="history-toggle-btn" title="查看对话记录">&#8634;</button>
+                    <div class="dialogue-history" id="dialogue-history"></div>
+                    <div class="dialogue-choices" id="dialogue-choices"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 人物图鉴（居中modal） -->
+    <div class="character-overlay" id="characterOverlay">
+        <div class="character-panel" id="characterPanel">
+            <div class="character-panel-header">
+                <h2>人物图鉴</h2>
+                <button class="character-panel-close" id="panelClose">&times;</button>
+            </div>
+            <div class="character-list" id="characterList"></div>
+        </div>
+    </div>
+
+    <script>
+        /* ========== 人物数据 ========== */
+        var characters = [
+            { id: 'zhuangzi', name: '庄子', field: '道家哲学', era: '约前369—前286年', desc: '逍遥游于天地之间，以寓言丈量自由的边界', img: 'assets/avatars/zhuangzi.jpg', dialogueAvailable: true },
+            { id: 'wangyangming', name: '王阳明', field: '心学哲学', era: '1472—1529年', desc: '知行合一，龙场悟道照亮心学之路', img: 'assets/avatars/wang-yangming.jpg', dialogueAvailable: false },
+            { id: 'wittgenstein', name: '维特根斯坦', field: '分析哲学', era: '1889—1951年', desc: '语言的边界就是世界的边界', img: 'assets/avatars/wittgenstein.jpg', dialogueAvailable: false },
+            { id: 'marx', name: '马克思', field: '政治经济学', era: '1818—1883年', desc: '哲学家们只是用不同的方式解释世界，问题在于改变世界', img: 'assets/avatars/marx.jpg', dialogueAvailable: false },
+            { id: 'feynman', name: '费曼', field: '理论物理', era: '1918—1988年', desc: '如果你觉得你懂了量子力学，那你就没懂', img: 'assets/avatars/feynman.jpg', dialogueAvailable: false },
+            { id: 'schrodinger', name: '薛定谔', field: '量子物理', era: '1887—1961年', desc: '在确定与不确定之间，猫同时活着和死去', img: 'assets/avatars/schrodinger.jpg', dialogueAvailable: false },
+            { id: 'jung', name: '荣格', field: '分析心理学', era: '1875—1961年', desc: '向外看的人在做梦，向内看的人在觉醒', img: 'assets/avatars/jung.jpg', dialogueAvailable: false },
+            { id: 'rousseau', name: '卢梭', field: '启蒙哲学', era: '1712—1778年', desc: '人生而自由，却无往不在枷锁之中', img: 'assets/avatars/rousseau.jpg', dialogueAvailable: false }
+        ];
+
+        /* ========== 喜欢状态管理 ========== */
+        var LIKES_KEY = 'gifts_of_genius_likes';
+        function getLikes() {
+            try {
+                var data = localStorage.getItem(LIKES_KEY);
+                return data ? JSON.parse(data) : {};
+            } catch(e) {
+                return {};
+            }
+        }
+        function setLike(id) {
+            var likes = getLikes();
+            likes[id] = !likes[id];
+            try { localStorage.setItem(LIKES_KEY, JSON.stringify(likes)); } catch(e) {}
+            return likes[id];
+        }
+        function isLiked(id) {
+            return !!getLikes()[id];
+        }
+
+        /* ========== 头像颜色 ========== */
+        var avatarColors = ['#d8c8b8', '#a8c8c8', '#c8c8d8', '#d8c0b0', '#b0c8d8', '#d8d0c0', '#c0d0c0', '#d8c0d0'];
+
+        /* ========== 渲染人物图鉴 ========== */
+        function renderCharacterList() {
+            var list = document.getElementById('characterList');
+            var likes = getLikes();
+            list.innerHTML = '';
+
+            characters.forEach(function(ch, idx) {
+                var card = document.createElement('div');
+                card.className = 'character-card' + (ch.dialogueAvailable ? ' active' : '');
+
+                var avatarHtml = '';
+                if (ch.img) {
+                    avatarHtml = '<img class="avatar" src="' + ch.img + '" alt="' + ch.name + '">';
+                } else {
+                    var bgColor = avatarColors[idx % avatarColors.length];
+                    avatarHtml = '<span class="avatar-text" style="background:' + bgColor + '">' + ch.name.charAt(0) + '</span>';
+                }
+
+                var likeClass = likes[ch.id] ? ' liked' : '';
+                var heartChar = likes[ch.id] ? '♥' : '♡';
+
+                var dialogueBtnHtml = '';
+                if (ch.dialogueAvailable) {
+                    dialogueBtnHtml = '<a href="dialogue.html" class="enter-dialogue-btn">进入对话</a>';
+                }
+
+                card.innerHTML =
+                    '<div class="card-top">' +
+                        avatarHtml +
+                        '<div class="card-info">' +
+                            '<div class="card-name">' + ch.name + '</div>' +
+                            '<div class="card-field">' + ch.field + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="card-desc">' + ch.desc + '</div>' +
+                    '<div class="card-era">' + ch.era + '</div>' +
+                    '<div class="card-actions">' +
+                        '<button class="like-btn' + likeClass + '" data-id="' + ch.id + '">' +
+                            '<span class="heart">' + heartChar + '</span> 喜欢' +
+                        '</button>' +
+                        dialogueBtnHtml +
+                    '</div>';
+
+                list.appendChild(card);
+            });
+
+            list.querySelectorAll('.like-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = this.getAttribute('data-id');
+                    var liked = setLike(id);
+                    var heart = this.querySelector('.heart');
+                    if (liked) {
+                        this.classList.add('liked');
+                        heart.textContent = '♥';
+                    } else {
+                        this.classList.remove('liked');
+                        heart.textContent = '♡';
+                    }
+                });
+            });
+        }
+
+        /* ========== 时间线数据 ========== */
+        var timelineEvents = [
+            { id: 'birth', year: '约前369年', title: '出生', meta: '宋国蒙地 · 庄周降世', available: true,
+              intro: '庄周出生于宋国蒙地（今河南商丘民权县），与梁惠王、孟子同时代。蒙地地处宋魏之间，文化交融，庄周从小接触多元思想。虽出身贫寒，未受系统的贵族教育，却凭借超凡的悟性和对自然的敏锐观察，日后成为道家思想的集大成者。' },
+            { id: 'gardener', year: '约前340年', title: '漆园吏', meta: '管理漆树种植与生漆采割', available: true,
+              intro: '庄子曾做过宋国蒙地的漆园吏——管理漆树种植与生漆采割的小官。这份低微的差事给了他大量与自然独处的时间。漆树需要数年才能产漆，庄子在等待中观察自然的生长与衰败，这些日后成为他哲学中"无用之用"思想的源头。' },
+            { id: 'refuse', year: '约前335年', title: '拒聘楚相', meta: '濮水垂钓 · 以神龟为喻拒楚威王', available: true },
+            { id: 'debate', year: '约前325年', title: '与惠施论辩', meta: '濠梁之辩 · 有用无用之辩', available: true },
+            { id: 'drum', year: '时间不详', title: '鼓盆而歌', meta: '妻子去世 · 庄子箕踞鼓盆而歌', available: true },
+            { id: 'huishi', year: '约前312年', title: '惠施去世', meta: '匠石运斤 · 吾无以为质矣', available: true,
+              intro: '惠施是庄子一生最重要的论辩对手，也是他最珍视的友谊。惠施去世后，庄子感叹"匠石运斤"——匠人挥斧削去鼻尖上的白垩泥，对手配合无间。匠人说自从对手死后，再无人能配合他运斤。庄子感叹："自夫子之死也，吾无以为质矣，吾无与言之矣。"——自从你走后，我再没有可以对话的人了。' },
+            { id: 'writing', year: '约前295年', title: '隐居著书', meta: '著书十余万言 · 内七篇出自庄子', available: true,
+              intro: '庄子晚年隐居著书，留下十余万言。今存《庄子》三十三篇，其中"内七篇"（逍遥游、齐物论、养生主、人间世、德充符、大宗师、应帝王）学界普遍认为出自庄子本人手笔，是道家哲学的核心文献。"外篇"和"杂篇"则多为弟子后学所作，但同样包含深刻的思想。' },
+            { id: 'death', year: '约前286年', title: '去世', meta: '拒绝厚葬 · 以天地为棺椁', available: true }
+        ];
+
+        /* ========== 当前场景 ========== */
+        var currentSceneId = 'refuse';
+
+        /* ========== 多场景对话数据 ========== */
+        var dialogueScenes = {
+            refuse: {
+                title: '拒聘楚相',
+                meta: '约公元前335年 · 濮水之畔 · 楚王遣使聘庄子为相',
+                background: 'assets/scenes/pu-river.jpg',
+                tree: {
+            start: {
+                speaker: 'zhuangzi',
+                text: '两位大夫从远远的楚国赶来，衣冠楚楚，站在我的钓竿旁边。他们说楚王愿意把国家大事托付给我。你看，濮水清澈，鱼儿自在。我手持钓竿，已经三天没有移步了。你会怎么回应这突如其来的权力？',
+                choices: [
+                    { text: '这是实现抱负的绝佳机会，应当立刻收拾行装赴任。', next: 'ambition' },
+                    { text: '先问问楚王的治国理念是否与自己相符。', next: 'cautious' },
+                    { text: '沉默片刻，指向水中的乌龟，讲一个泥地里摇尾巴的故事。', next: 'turtle_story' },
+                    { text: '直言谢绝，说自己宁愿做一只在野地里觅食的孤豚。', next: 'refuse' }
+                ]
+            },
+            ambition: {
+                speaker: 'zhuangzi',
+                text: '（轻轻放下钓竿，目光仍在水面）你选择了世人眼中的正途。但让我问你：你看那庙堂上的死龟，骨头被锦缎包裹，占卜时人人恭敬。它活着时在泥中摇尾的快乐，死后还能感受吗？',
+                source: '《秋水》：吾将曳尾于涂中',
+                choices: [
+                    { text: '但人不同于龟，人有能力在权力中保持自由。', next: 'power_freedom' },
+                    { text: '……我开始理解你的顾虑了。', next: 'understand' }
+                ]
+            },
+            cautious: {
+                speaker: 'zhuangzi',
+                text: '（微微一笑）你比那些急于赴任的人审慎。但"相符"的标准是谁定的？你若以自己的标准去衡量楚王的天下，天下就会反过来衡量你。一旦进入那个体系，你的"相符"与否就不再由自己说了算了。',
+                source: '《人间世》：名也者，相轧也',
+                choices: [
+                    { text: '那是否意味着应该完全远离政治？', next: 'avoid_politics' },
+                    { text: '所以关键在于不进入任何评价体系？', next: 'evaluation' }
+                ]
+            },
+            turtle_story: {
+                speaker: 'zhuangzi',
+                text: '（终于转头看向你，眼中有了笑意）你说出了我会说的话。那神龟宁愿活在泥中，因为生命本身的价值高于被供奉的虚名。决策的根本，不在于计算哪个选项利益更大，而在于辨认哪个选项更忠实于自己的生命质地。',
+                source: '《秋水》：往矣，吾将曳尾于涂中',
+                choices: [
+                    { text: '但如果每个人都这样选择，社会如何运转？', next: 'society' },
+                    { text: '你后悔过吗？看着别人建功立业。', next: 'regret' }
+                ]
+            },
+            refuse: {
+                speaker: 'zhuangzi',
+                text: '（大笑，笑声在濮水边回荡）痛快！但你比我更决绝。我至少还讲了一个乌龟的故事，而你连故事都省去了。不过，直接的拒绝有时也是一种被激怒后的反应。你确定自己的拒绝来自清醒的判断，而不是对权力的逆反？',
+                source: '《列御寇》：或聘于庄子',
+                choices: [
+                    { text: '我需要再想想……也许我是在逃避而非选择。', next: 'reflect' },
+                    { text: '我确定。自由本身就是最高价值。', next: 'freedom' }
+                ]
+            },
+            power_freedom: {
+                speaker: 'zhuangzi',
+                text: '（摇头）古往今来，抱着这种想法进入权力的人，没有一个能保持初衷。不是因为他们软弱，而是因为权力本身会重新定义"自由"的含义。当你能决定他人生死时，"不做决定"本身也是一种权力行使。你已经被改变了。',
+                choices: [
+                    { text: '那是否意味着彻底的退出是唯一选择？', next: 'exit_only' }
+                ]
+            },
+            understand: {
+                speaker: 'zhuangzi',
+                text: '理解是第一步。但理解之后呢？很多人理解了，仍然选择赴任，因为他们说"我会不一样"。这种自信正是最大的陷阱。',
+                choices: [
+                    { text: '所以你选择不给自己任何陷阱的机会。', next: 'no_trap' }
+                ]
+            },
+            avoid_politics: {
+                speaker: 'zhuangzi',
+                text: '不是远离，而是不被定义。我并非不关心世事，我写书、与人辩论、在世间行走。关键是——我不属于任何一个需要我效忠的系统。这种"之间"的状态，才是自由的所在。',
+                choices: [
+                    { text: '这种游离状态不会孤独吗？', next: 'lonely' }
+                ]
+            },
+            evaluation: {
+                speaker: 'zhuangzi',
+                text: '正是。所有的评价体系都是一把尺子，而一旦被测量，你就成了被尺子定义的东西。"无用"不是真的没有价值，而是拒绝被你的尺子测量。',
+                choices: [
+                    { text: '这与你的"大瓠"之喻一脉相承。', next: 'connection' }
+                ]
+            },
+            society: {
+                speaker: 'zhuangzi',
+                text: '社会自有其运转之道，不缺一个我。但如果每个人都为了"社会运转"而牺牲自己的生命质地，那这个社会值得运转吗？良好的社会应当容得下泥中摇尾的乌龟。',
+                choices: [
+                    { text: '这是一种理想主义吗？', next: 'idealism' }
+                ]
+            },
+            regret: {
+                speaker: 'zhuangzi',
+                text: '（望着水面）我注视着游鱼，听风吹动芦苇，看着日出日落。这些时刻，我没有任何匮乏感。后悔来自比较——而我已经不再参与那场比较了。',
+                choices: [
+                    { text: '如何做到不再比较？', next: 'no_compare' }
+                ]
+            },
+            reflect: {
+                speaker: 'zhuangzi',
+                text: '（点头）能这样反问自己是难得的。很多决策看似是"选择"，其实只是对某种刺激的自动反应。真正的决策需要停顿——在刺激和反应之间，留出一片空间。',
+                choices: [
+                    { text: '这片空间里有什么？', next: 'space' }
+                ]
+            },
+            freedom: {
+                speaker: 'zhuangzi',
+                text: '那么你就是我的同道。但记住——自由不是反抗的结果，而是不被定义的状态。如果你为了"自由"而不断反抗，你的自由就被反抗的对象定义了。',
+                choices: [
+                    { text: '真正的自由是无痕的。', next: 'end' }
+                ]
+            },
+            exit_only: {
+                speaker: 'zhuangzi',
+                text: '对于某些人，是的。但每个人有自己的"泥地"。我的选择是基于我的生命质地，不是放之四海而皆准的法则。你的泥地在哪里，只有你自己知道。',
+                choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+            },
+            no_trap: {
+                speaker: 'zhuangzi',
+                text: '（微笑）最坚固的陷阱，是自己亲手打造的。我不打造，也就没有什么可担心的了。',
+                choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+            },
+            lonely: {
+                speaker: 'zhuangzi',
+                text: '孤独是独处的副产品，但不是必然的。我与天地精神往来，与古人神交，与鱼鸟同乐。这种联结不需要任何体制的背书。',
+                choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+            },
+            connection: {
+                speaker: 'zhuangzi',
+                text: '（欣慰地）你听懂了我的话。所有的寓言都是同一把钥匙，只是开不同的门。',
+                choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+            },
+            idealism: {
+                speaker: 'zhuangzi',
+                text: '如果"现实"就是放弃生命质地去适应系统，那我宁愿做理想主义者。至少我的理想是活出来的，不是喊出来的。',
+                choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+            },
+            no_compare: {
+                speaker: 'zhuangzi',
+                text: '不再用别人的尺子量自己。这不是傲慢，而是谦卑——承认自己生命的意义不在任何外部标准之中。',
+                choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+            },
+            space: {
+                speaker: 'zhuangzi',
+                text: '有觉察。觉察到自己的冲动、恐惧、欲望，觉察到它们如何推动你做出自动化的反应。在那片空间里，你重新成为决策的主体。',
+                choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+            },
+            end: {
+                speaker: 'zhuangzi',
+                text: '（重新举起钓竿，望向濮水深处）去吧，去找到你自己的泥地。记住：最好的决策，永远是让你更像你自己的那个。',
+                choices: []
+            }
+                }
+            },
+            debate: {
+                title: '濠梁之辩',
+                meta: '约公元前325年 · 濠水桥上 · 庄子与惠施游于濠梁之上',
+                background: 'assets/scenes/hao-bridge.jpg',
+                tree: {
+                    start: {
+                        speaker: 'zhuangzi',
+                        text: '（倚着桥栏，望着水中）惠施啊，你看那白条鱼游得从容自在，这就是鱼的快乐啊。惠施站在一旁，皱着眉头看着我。你觉得呢——鱼到底快不快乐？',
+                        choices: [
+                            { text: '你又不是鱼，怎么知道鱼的快乐？', next: 'not_fish' },
+                            { text: '我觉得鱼是快乐的，看它们游得多自在。', next: 'fish_happy' },
+                            { text: '这个问题没有意义，快乐与否只有自己知道。', next: 'subjective' },
+                            { text: '你和惠施在争论什么？', next: 'what_debate' }
+                        ]
+                    },
+                    not_fish: {
+                        speaker: 'zhuangzi',
+                        text: '（笑）你说得好——这正是惠施说的话。但让我问你：你不是我，怎么知道我不知道鱼的快乐？',
+                        source: '《秋水》：子非鱼，安知鱼之乐',
+                        choices: [
+                            { text: '我不是你，所以不知道你；你不是鱼，所以你也不知道鱼。这就对了。', next: 'hui_reply' },
+                            { text: '……好像绕进去了。', next: 'confused' }
+                        ]
+                    },
+                    fish_happy: {
+                        speaker: 'zhuangzi',
+                        text: '（点头）我也是这么觉得的。但惠施非要跟我辩：你又不是鱼，你怎么知道鱼快乐？你说，他这话说得有道理吗？',
+                        choices: [
+                            { text: '有道理啊，我们确实没法知道鱼的感受。', next: 'agree_hui' },
+                            { text: '没道理——快乐是可以感受出来的。', next: 'disagree_hui' }
+                        ]
+                    },
+                    subjective: {
+                        speaker: 'zhuangzi',
+                        text: '（若有所思）你说到点子上了。但"知道"到底是什么意思？是感官上的确证，还是心境上的相通？',
+                        choices: [
+                            { text: '应该是感官的确证吧，不然不就成了主观臆断？', next: 'sensory' },
+                            { text: '心境上的相通也是一种"知"。', next: 'resonance' }
+                        ]
+                    },
+                    what_debate: {
+                        speaker: 'zhuangzi',
+                        text: '我刚说鱼游得从容，是鱼的快乐。惠施说：你不是鱼，怎么知道鱼快乐？然后我说：你不是我，怎么知道我不知道？然后他说：我不是你，本来就不知道你；你不是鱼，你也不知道鱼——这就全了。你猜我最后怎么说的？',
+                        choices: [
+                            { text: '你说"请循其本"，回到问题的起点。', next: 'back_to_origin' },
+                            { text: '我不知道，你怎么说的？', next: 'dont_know_reply' }
+                        ]
+                    },
+                    hui_reply: {
+                        speaker: 'zhuangzi',
+                        text: '（拍了一下桥栏）妙啊！这就是惠施的反击。但我告诉他：请回到问题的起点——你说"你怎么知道鱼快乐"的时候，你已经知道我知道了才问我的。我告诉你，我是在濠水的桥上知道的。',
+                        source: '《秋水》：请循其本',
+                        choices: [
+                            { text: '这是在玩文字游戏吧？', next: 'word_game' },
+                            { text: '我好像懂了——"知"的方式不只有一种。', next: 'understand_zhi' }
+                        ]
+                    },
+                    confused: {
+                        speaker: 'zhuangzi',
+                        text: '（大笑）绕进去就对了。这就是辩论的乐趣——不是为了赢，而是为了看看"知道"这件事本身有多奇妙。',
+                        choices: [{ text: '对话结束，值得回味。', next: 'end' }]
+                    },
+                    agree_hui: {
+                        speaker: 'zhuangzi',
+                        text: '惠施也是这么想的。他讲逻辑、讲实证，是真正的辩者。但我问他：你说"你怎么知道鱼快乐"这句话的时候，你是不是已经知道了我的"知道"才来问我的？',
+                        choices: [
+                            { text: '嗯……好像是这样。', next: 'understand_zhi' }
+                        ]
+                    },
+                    disagree_hui: {
+                        speaker: 'zhuangzi',
+                        text: '（眼中有光）说得好！人不是孤岛，万物之间本有相通之处。你看鱼游得从容，你感受到它的快乐——这不是推论，是当下的感通。',
+                        choices: [{ text: '对话结束，心境开阔。', next: 'end' }]
+                    },
+                    sensory: {
+                        speaker: 'zhuangzi',
+                        text: '惠施也是这么认为的。但如果一切都要感官确证，那你怎么知道别人快不快乐？你又不是别人。人与人之间的理解，难道不也是一种"不知而知"吗？',
+                        choices: [
+                            { text: '所以"知"的范围比感官要广？', next: 'understand_zhi' }
+                        ]
+                    },
+                    resonance: {
+                        speaker: 'zhuangzi',
+                        text: '（欣慰地看着你）正是。万物与我为一，不是说万物都一样，而是说人心可以通于物情。我在濠上，鱼在水中，心境相通——这就是"知"。',
+                        choices: [{ text: '对话结束，受益匪浅。', next: 'end' }]
+                    },
+                    back_to_origin: {
+                        speaker: 'zhuangzi',
+                        text: '（惊喜地）你读过《秋水》！正是——请循其本。你问我"怎么知道"的时候，你已经默认了我"知道"这件事，不然你不会问。所以我说，我是在濠上知道的。',
+                        source: '《秋水》：我知之濠上也',
+                        choices: [{ text: '对话结束，回味无穷。', next: 'end' }]
+                    },
+                    dont_know_reply: {
+                        speaker: 'zhuangzi',
+                        text: '我说：请回到问题的开头。你说"你怎么知道鱼快乐"的时候，你已经知道我知道了才问我的。我告诉你吧——我是在濠水的桥上知道的。',
+                        source: '《秋水》：我知之濠上也',
+                        choices: [
+                            { text: '这是诡辩还是真知？', next: 'word_game' }
+                        ]
+                    },
+                    word_game: {
+                        speaker: 'zhuangzi',
+                        text: '（摇头）不是文字游戏。是在提醒我们："知道"不止一种方式。逻辑推理是一种，直观感通也是一种。鱼快不快乐，不是用尺子量出来的，是用心境照出来的。',
+                        choices: [{ text: '对话结束，若有所思。', next: 'end' }]
+                    },
+                    understand_zhi: {
+                        speaker: 'zhuangzi',
+                        text: '（望向远处）惠施讲逻辑，我讲感通。他是手术刀，我是镜子。两种"知"，没有对错，只有深浅。',
+                        choices: [{ text: '对话结束，心境开阔。', next: 'end' }]
+                    },
+                    end: {
+                        speaker: 'zhuangzi',
+                        text: '（继续望着水中游鱼）辩论结束了，但鱼还在游。惠施去世后，再也没有人跟我这样辩了。你今天来了，很好。',
+                        choices: []
+                    }
+                }
+            },
+            drum: {
+                title: '鼓盆而歌',
+                meta: '时间不详 · 庄子家中 · 妻子去世，庄子箕踞鼓盆而歌',
+                background: 'assets/scenes/drum-singing.jpg',
+                tree: {
+                    start: {
+                        speaker: 'zhuangzi',
+                        text: '（坐在地上，面前放着一只瓦盆，一手拿着鼓槌，抬头看你）你来了。我妻子刚走，惠施也刚来骂过我一通。他说：人死了你不哭也就罢了，还敲着盆唱歌，太过分了。你觉得呢？',
+                        choices: [
+                            { text: '确实过分，人死了怎么能唱歌呢？', next: 'too_much' },
+                            { text: '我想先听听你为什么唱歌。', next: 'ask_reason' },
+                            { text: '或许你有你的道理。', next: 'maybe_reason' },
+                            { text: '你不难过吗？', next: 'not_sad' }
+                        ]
+                    },
+                    too_much: {
+                        speaker: 'zhuangzi',
+                        text: '（点头）刚开始我也是这么觉得的。她刚走的时候，我怎么可能不难过？我也是人啊。但坐着坐着，我想通了一件事。',
+                        source: '《至乐》：庄子妻死，惠子吊之',
+                        choices: [
+                            { text: '什么事？', next: 'what_thing' }
+                        ]
+                    },
+                    ask_reason: {
+                        speaker: 'zhuangzi',
+                        text: '（放下鼓槌）你比惠施有耐心。他一进来就骂。好，我跟你说：她刚死的时候，我怎么能不感慨伤心？但我回头想想她的开始——她本来就没有生命。',
+                        source: '《至乐》：察其始而本无生',
+                        choices: [
+                            { text: '什么叫"本来就没有生命"？', next: 'no_life' }
+                        ]
+                    },
+                    maybe_reason: {
+                        speaker: 'zhuangzi',
+                        text: '（微微一笑）谢谢你愿意这么想。其实很简单——你看四季轮回，草木枯荣，有谁为此哭泣？人的生死，不就像春夏秋冬一样自然吗？',
+                        choices: [
+                            { text: '但人是有感情的啊。', next: 'human_feeling' },
+                            { text: '你说得对，生死自然。', next: 'agree_nature' }
+                        ]
+                    },
+                    not_sad: {
+                        speaker: 'zhuangzi',
+                        text: '（沉默片刻）怎么会不难过？她跟了我一辈子，贫贱不移。刚开始我哭得比谁都凶。但哭着哭着，我忽然觉得不对——我这是在哭什么呢？',
+                        choices: [
+                            { text: '在哭失去的陪伴和感情啊。', next: 'cry_loss' },
+                            { text: '你想通了什么？', next: 'what_thing' }
+                        ]
+                    },
+                    what_thing: {
+                        speaker: 'zhuangzi',
+                        text: '我想到：她本来就没有生命，不但没有生命，本来就没有形体；不但没有形体，本来就没有气。在恍恍惚惚之间，气变成了形，形变成了生命，现在又变回了死亡。',
+                        source: '《至乐》：形变而有生，今又变而之死',
+                        choices: [
+                            { text: '就像春夏秋冬四季轮转一样？', next: 'seasons' }
+                        ]
+                    },
+                    no_life: {
+                        speaker: 'zhuangzi',
+                        text: '在她出生之前，这世上没有她这个人。那时候她在哪里？在混沌里，在元气中，在一片无形之中。后来气聚成形，形具神生，她就来了。',
+                        choices: [
+                            { text: '所以死亡只是回去了？', next: 'go_back' }
+                        ]
+                    },
+                    human_feeling: {
+                        speaker: 'zhuangzi',
+                        text: '正因为有感情，才要明白感情该放在哪里。为她的离去哭，是人之常情；但为她的归去而安，是通达之人的情。',
+                        choices: [
+                            { text: '什么叫"归去"？', next: 'go_back' }
+                        ]
+                    },
+                    agree_nature: {
+                        speaker: 'zhuangzi',
+                        text: '（轻轻敲了一下盆）就是这个理。她从自然中来，回自然中去，就像累了回家睡觉一样。我要是哭天抢地，那不就是不明白她的去处吗？',
+                        choices: [{ text: '对话结束，对生死有了新的理解。', next: 'end' }]
+                    },
+                    cry_loss: {
+                        speaker: 'zhuangzi',
+                        text: '是，我哭的是"我失去了她"。但你想过吗——她没有失去任何东西。她只是换了一种存在方式。悲伤的是"我"，不是"她"。我为什么要用我的悲伤去定义她的归去呢？',
+                        choices: [
+                            { text: '所以你唱歌是为她庆祝？', next: 'celebrate' }
+                        ]
+                    },
+                    seasons: {
+                        speaker: 'zhuangzi',
+                        text: '（眼中有光）正是！春夏秋冬，生老病死，都是天地间的正常变化。她现在安安稳稳地睡在天地这间大屋子里，我要是嗷嗷地哭，那才是不通天命呢。',
+                        source: '《至乐》：是相与为春秋冬夏四时行也',
+                        choices: [
+                            { text: '那你为什么还敲盆唱歌？', next: 'why_sing' }
+                        ]
+                    },
+                    go_back: {
+                        speaker: 'zhuangzi',
+                        text: '对。从哪里来，回哪里去。她来的时候，我们欢喜；她走的时候，为什么就不能同样欢喜地送她？这不是冷漠，是看透之后的温柔。',
+                        choices: [
+                            { text: '所以你唱歌是在送她？', next: 'celebrate' }
+                        ]
+                    },
+                    celebrate: {
+                        speaker: 'zhuangzi',
+                        text: '（轻轻点头）算是吧。不是庆祝死亡，是庆祝她来过，也庆祝她好好地归去了。这一生，她没有对不起谁，也没有什么遗憾。这难道不值得歌吗？',
+                        choices: [{ text: '对话结束，对生死有了新的体悟。', next: 'end' }]
+                    },
+                    why_sing: {
+                        speaker: 'zhuangzi',
+                        text: '（举起鼓槌）因为我心里有歌啊。感激她这一生的陪伴，也欣慰她归于天地的安宁。悲伤可以哭，欢喜为什么不能唱？',
+                        choices: [{ text: '对话结束，豁然开朗。', next: 'end' }]
+                    },
+                    end: {
+                        speaker: 'zhuangzi',
+                        text: '（轻轻敲了一下瓦盆，声音悠远）人都怕死，其实怕的不是死，是失去。但如果你明白一切本来就不属于你，你就什么都不怕了。',
+                        choices: []
+                    }
+                }
+            },
+            death: {
+                title: '将死之言',
+                meta: '约公元前286年 · 庄子临终 · 弟子欲厚葬之',
+                background: 'assets/scenes/deathbed.jpg',
+                tree: {
+                    start: {
+                        speaker: 'zhuangzi',
+                        text: '（躺在草席上，气息微弱，但眼神清明）弟子们说要厚葬我。他们说：老师，您要是没有好的棺椁陪葬，我们怕乌鸦和老鹰吃了您。你怎么看？',
+                        choices: [
+                            { text: '厚葬是应该的，这是对先师的尊重。', next: 'respect' },
+                            { text: '你肯定拒绝了吧？', next: 'refuse_burial' },
+                            { text: '你害怕被乌鸦老鹰吃吗？', next: 'afraid' },
+                            { text: '你觉得什么样的葬礼合适？', next: 'what_fit' }
+                        ]
+                    },
+                    respect: {
+                        speaker: 'zhuangzi',
+                        text: '（轻笑）尊重是放在心里的，不是放在棺材里的。我活了一辈子，都在用"无用"保全自己，死了倒要用厚葬来害自己？',
+                        source: '《列御寇》：庄子将死，弟子欲厚葬之',
+                        choices: [
+                            { text: '厚葬怎么会害你呢？', next: 'harm' }
+                        ]
+                    },
+                    refuse_burial: {
+                        speaker: 'zhuangzi',
+                        text: '（点头）是拒绝了。我说：以天地为棺椁，以日月为连璧，以星辰为珠玑，以万物为赍送。我的葬具难道还不够好吗？',
+                        source: '《列御寇》：吾以天地为棺椁',
+                        choices: [
+                            { text: '天地做棺材？这也太大了。', next: 'big_coffin' },
+                            { text: '那乌鸦老鹰吃你怎么办？', next: 'afraid' }
+                        ]
+                    },
+                    afraid: {
+                        speaker: 'zhuangzi',
+                        text: '（摇头笑）放在地上被乌鸦老鹰吃，埋在地下被蝼蚁吃，从乌鸦嘴里抢过来给蝼蚁，你们怎么这么偏心啊？',
+                        source: '《列御寇》：在上为乌鸢食，在下为蝼蚁食',
+                        choices: [
+                            { text: '哈哈哈，说得好。', next: 'laugh' },
+                            { text: '但人死后不应该有尊严吗？', next: 'dignity' }
+                        ]
+                    },
+                    what_fit: {
+                        speaker: 'zhuangzi',
+                        text: '（眼中有笑意）我给你念一段：以天地为棺椁，以日月为玉璧，以星辰为珠玑，万物都是我的陪葬品。这样的葬礼，还不够盛大吗？',
+                        source: '《列御寇》：万物为赍送',
+                        choices: [
+                            { text: '这也太浪漫了。', next: 'romantic' },
+                            { text: '那身体被鸟兽吃了怎么办？', next: 'afraid' }
+                        ]
+                    },
+                    harm: {
+                        speaker: 'zhuangzi',
+                        text: '厚葬引来盗墓贼，尸首不得安宁，这不是害是什么？再说了——我从天地间来，回天地间去，为什么要装在一个木头盒子里？',
+                        choices: [
+                            { text: '那你想要什么样的葬礼？', next: 'what_fit' }
+                        ]
+                    },
+                    big_coffin: {
+                        speaker: 'zhuangzi',
+                        text: '（笑声微弱但爽朗）大吗？我活的时候就住在天地间，死了为什么要换小房子？',
+                        choices: [
+                            { text: '那身体怎么办？', next: 'afraid' }
+                        ]
+                    },
+                    laugh: {
+                        speaker: 'zhuangzi',
+                        text: '（也笑）就是这个道理。都是死，喂谁不是喂呢？你们非要从乌鸦嘴里抢给蝼蚁，也太偏心了。',
+                        choices: [
+                            { text: '你真的一点都不怕死吗？', next: 'not_afraid_death' }
+                        ]
+                    },
+                    dignity: {
+                        speaker: 'zhuangzi',
+                        text: '尊严？人的尊严活着的时候就用完了。死了就是一堆物质，归还给天地。从哪里来，回哪里去，这才是最大的尊严。',
+                        choices: [{ text: '对话结束，震撼而释然。', next: 'end' }]
+                    },
+                    romantic: {
+                        speaker: 'zhuangzi',
+                        text: '浪漫吗？我觉得是本分。人是天地生的，死了还给天地，这不是天经地义的事吗？',
+                        choices: [{ text: '对话结束，心境开阔。', next: 'end' }]
+                    },
+                    not_afraid_death: {
+                        speaker: 'zhuangzi',
+                        text: '（轻轻摇头）你怕回家吗？死就是回家。我在外面逛了一辈子，累了，该回去了。有什么好怕的？',
+                        choices: [{ text: '对话结束，对死亡有了新的理解。', next: 'end' }]
+                    },
+                    end: {
+                        speaker: 'zhuangzi',
+                        text: '（声音越来越轻）记住……最好的告别，是笑着挥手。我走了，但天地还在。你抬头看的月亮，就是我看过的那个……',
+                        choices: []
+                    }
+                }
+            }
+        };
+
+        /* ========== 获取当前对话树 ========== */
+        function getCurrentTree() {
+            return dialogueScenes[currentSceneId] ? dialogueScenes[currentSceneId].tree : null;
+        }
+
+        /* ========== 对话逻辑 ========== */
+        var currentDialogue = 'start';
+
+        function renderDialogue() {
+            var tree = getCurrentTree();
+            if (!tree) return;
+            var node = tree[currentDialogue];
+            if (!node) return;
+
+            var history = document.getElementById('dialogue-history');
+            var choices = document.getElementById('dialogue-choices');
+
+            /* Mark all existing messages as prev (hidden by default) */
+            history.querySelectorAll('.dialogue-msg').forEach(function(msg) {
+                msg.classList.add('prev-msg');
+            });
+            /* Remove show-all mode when new message arrives */
+            history.classList.remove('show-all');
+
+            var msgDiv = document.createElement('div');
+            msgDiv.className = 'dialogue-msg ' + node.speaker;
+
+            var sourceHtml = node.source ? '<div class="msg-source">' + node.source + '</div>' : '';
+            msgDiv.innerHTML = '<div class="msg-bubble"><p>' + node.text + '</p>' + sourceHtml + '</div>';
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+
+            /* Update history toggle button state */
+            updateHistoryBtn();
+
+            choices.innerHTML = '';
+            if (node.choices.length === 0) {
+                var restartBtn = document.createElement('button');
+                restartBtn.className = 'choice-btn';
+                restartBtn.textContent = '重新开始本次对话';
+                restartBtn.addEventListener('click', function() {
+                    history.innerHTML = '';
+                    history.classList.remove('show-all');
+                    var toggleBtn = document.getElementById('history-toggle-btn');
+                    toggleBtn.innerHTML = '&#8634;';
+                    toggleBtn.title = '查看对话记录';
+                    currentDialogue = 'start';
+                    renderDialogue();
+                });
+                choices.appendChild(restartBtn);
+            } else {
+                node.choices.forEach(function(choice) {
+                    var btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.textContent = choice.text;
+                    btn.addEventListener('click', function() {
+                        /* Mark latest msg as prev before showing user choice */
+                        history.querySelectorAll('.dialogue-msg:not(.prev-msg)').forEach(function(msg) {
+                            msg.classList.add('prev-msg');
+                        });
+                        history.classList.remove('show-all');
+
+                        var userMsg = document.createElement('div');
+                        userMsg.className = 'dialogue-msg user';
+                        userMsg.innerHTML = '<div class="msg-bubble"><p>' + choice.text + '</p></div>';
+                        history.appendChild(userMsg);
+                        history.scrollTop = history.scrollHeight;
+
+                        currentDialogue = choice.next;
+                        setTimeout(renderDialogue, 600);
+                    });
+                    choices.appendChild(btn);
+                });
+            }
+        }
+
+        /* ========== 时间线渲染 ========== */
+        function renderTimeline() {
+            var track = document.getElementById('timelineTrack');
+            var html = '';
+            timelineEvents.forEach(function(ev, idx) {
+                var isActive = ev.id === currentSceneId;
+                var available = ev.available && dialogueScenes[ev.id];
+                var nodeClass = 'timeline-node' + (isActive ? ' active' : '') + (available ? '' : ' disabled');
+                html += '<div class="' + nodeClass + '" data-id="' + ev.id + '" title="' + ev.meta + '">' +
+                    '<div class="timeline-year">' + ev.year + '</div>' +
+                    '<div class="timeline-title">' + ev.title + '</div>' +
+                    '</div>';
+            });
+            track.innerHTML = html;
+
+            track.querySelectorAll('.timeline-node').forEach(function(n) {
+                n.addEventListener('click', function() {
+                    var id = this.getAttribute('data-id');
+                    // 切换active样式
+                    track.querySelectorAll('.timeline-node').forEach(function(node) {
+                        node.classList.remove('active');
+                    });
+                    this.classList.add('active');
+
+                    if (dialogueScenes[id]) {
+                        // 有对话：正常切换场景
+                        switchScene(id);
+                    } else {
+                        // 无对话：显示介绍
+                        showIntro(id);
+                    }
+                });
+            });
+        }
+
+        /* ========== 切换对话场景 ========== */
+        function switchScene(sceneId) {
+            if (!dialogueScenes[sceneId]) return;
+            currentSceneId = sceneId;
+            currentDialogue = 'start';
+
+            var scene = dialogueScenes[sceneId];
+            document.getElementById('dialogueTitle').textContent = scene.title;
+            document.getElementById('dialogueMeta').textContent = scene.meta;
+
+            var area = document.getElementById('dialogueArea');
+            if (scene.background) {
+                area.style.backgroundImage = 'url(' + scene.background + ')';
+            }
+
+            var history = document.getElementById('dialogue-history');
+            history.innerHTML = '';
+            history.classList.remove('show-all');
+            var toggleBtn = document.getElementById('history-toggle-btn');
+            toggleBtn.innerHTML = '&#8634;';
+            toggleBtn.title = '查看对话记录';
+            document.getElementById('dialogue-choices').innerHTML = '';
+
+            renderTimeline();
+            setTimeout(renderDialogue, 200);
+        }
+
+        /* ========== 显示节点介绍（无对话时） ========== */
+        function showIntro(nodeId) {
+            var ev = timelineEvents.find(function(e) { return e.id === nodeId; });
+            if (!ev || !ev.intro) return;
+
+            currentSceneId = nodeId;
+            document.getElementById('dialogueTitle').textContent = ev.title;
+            document.getElementById('dialogueMeta').textContent = ev.meta;
+
+            document.getElementById('dialogueArea').style.backgroundImage = 'url(assets/scenes/dream-butterfly.jpg)';
+
+            var history = document.getElementById('dialogue-history');
+            var choices = document.getElementById('dialogue-choices');
+            history.innerHTML = '';
+            history.classList.remove('show-all');
+            var toggleBtn = document.getElementById('history-toggle-btn');
+            toggleBtn.innerHTML = '&#8634;';
+            toggleBtn.title = '查看对话记录';
+            choices.innerHTML = '';
+
+            var introMsg = document.createElement('div');
+            introMsg.className = 'dialogue-msg zhuangzi';
+            introMsg.innerHTML = '<div class="msg-bubble"><p>' + ev.intro + '</p></div>';
+            history.appendChild(introMsg);
+
+            var notice = document.createElement('div');
+            notice.className = 'dialogue-msg system';
+            notice.innerHTML = '<div class="msg-bubble"><p style="font-size:0.8rem;color:var(--mist)">该场景的对话正在筹备中，敬请期待</p></div>';
+            history.appendChild(notice);
+        }
+
+        /* ========== 人物图鉴面板 ========== */
+        var galleryBtn = document.getElementById('galleryBtn');
+        var panelClose = document.getElementById('panelClose');
+        var characterPanel = document.getElementById('characterPanel');
+        var characterOverlay = document.getElementById('characterOverlay');
+
+        function openGallery() {
+            characterOverlay.classList.add('active');
+        }
+
+        function closeGallery() {
+            characterOverlay.classList.remove('active');
+        }
+
+        galleryBtn.addEventListener('click', openGallery);
+        panelClose.addEventListener('click', closeGallery);
+        characterOverlay.addEventListener('click', function(e) {
+            if (e.target === this) closeGallery();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (characterOverlay.classList.contains('active')) {
+                    closeGallery();
+                }
+            }
+        });
+
+        /* ========== 历史回顾按钮 ========== */
+        function updateHistoryBtn() {
+            var history = document.getElementById('dialogue-history');
+            var btn = document.getElementById('history-toggle-btn');
+            var prevCount = history.querySelectorAll('.dialogue-msg.prev-msg').length;
+            btn.classList.toggle('has-history', prevCount > 0);
+        }
+
+        document.getElementById('history-toggle-btn').addEventListener('click', function() {
+            var history = document.getElementById('dialogue-history');
+            var prevCount = history.querySelectorAll('.dialogue-msg.prev-msg').length;
+
+            if (prevCount === 0) {
+                /* No history yet — show a brief hint */
+                var existingHint = history.querySelector('.history-empty-hint');
+                if (existingHint) { existingHint.remove(); return; }
+                var hint = document.createElement('div');
+                hint.className = 'dialogue-msg system history-empty-hint';
+                hint.innerHTML = '<div class="msg-bubble"><p style="font-size:0.8rem;color:var(--mist)">暂无更多对话记录</p></div>';
+                history.appendChild(hint);
+                history.scrollTop = history.scrollHeight;
+                setTimeout(function() { hint.remove(); }, 2000);
+                return;
+            }
+
+            var isShowingAll = history.classList.toggle('show-all');
+            this.innerHTML = isShowingAll ? '&#10005;' : '&#8634;';
+            this.title = isShowingAll ? '收起对话记录' : '查看对话记录';
+            history.scrollTop = history.scrollHeight;
+        });
+
+        /* ========== 初始化 ========== */
+        var initScene = dialogueScenes[currentSceneId];
+        if (initScene && initScene.background) {
+            document.getElementById('dialogueArea').style.backgroundImage = 'url(' + initScene.background + ')';
+        }
+        renderCharacterList();
+        renderTimeline();
+        renderDialogue();
+    </script>
+    <script src="_shared/js/animations.js"></script>
+</body>
+</html>
